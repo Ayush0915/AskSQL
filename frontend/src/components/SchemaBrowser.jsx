@@ -40,7 +40,7 @@ export default function SchemaBrowser({
     e.stopPropagation()
     setDragActive(false)
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const files = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endswith('.csv'))
+      const files = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.csv'))
       if (files.length === 0) {
         setUploadError("Only CSV files are accepted.")
         return
@@ -52,7 +52,7 @@ export default function SchemaBrowser({
 
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
-      const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endswith('.csv'))
+      const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.csv'))
       if (files.length === 0) {
         setUploadError("Only CSV files are accepted.")
         return

@@ -11,7 +11,11 @@ export default function App() {
   const [sessionId] = useState(() => {
     let id = sessionStorage.getItem('asksql_session_id')
     if (!id) {
-      id = crypto.randomUUID()
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        id = crypto.randomUUID()
+      } else {
+        id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+      }
       sessionStorage.setItem('asksql_session_id', id)
     }
     return id
