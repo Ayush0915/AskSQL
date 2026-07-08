@@ -241,11 +241,6 @@ export default function App() {
       <footer className="border-t border-borderSubtle bg-darkCard py-5 mt-auto">
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs text-textSecondary">
           <p>© 2026 AskSQL Project</p>
-          <div className="flex gap-4">
-            <span>Solo Capstone Project</span>
-            <span>·</span>
-            <span>React + DuckDB + Llama 3</span>
-          </div>
         </div>
       </footer>
     </div>

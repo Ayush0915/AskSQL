@@ -24,12 +24,6 @@ export default function QueryInput({ onSubmit, isLoading, isDatasetLoaded, examp
     <div className="w-full">
       {/* Heading */}
       <div className="mb-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-darkCard border border-borderSubtle rounded-full px-4 py-1.5 mb-4 shadow-sm">
-          <Sparkles size={13} className="text-accentPrimary" />
-          <span className="text-accentPrimary text-[10px] font-bold tracking-wider uppercase">
-            Powered by Llama 3 + ChromaDB RAG
-          </span>
-        </div>
         <h1 className="text-3xl md:text-4xl font-normal font-serif text-textPrimary mb-3 leading-tight">
           Ask your database anything
         </h1>
