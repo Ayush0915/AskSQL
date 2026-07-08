@@ -66,8 +66,8 @@
 
   /* ── Primary action button (bright gold) ──────────────────────────────── */
   .btn-neon {
-    background:    var(--btn-gold);
-    color:         var(--text-primary);
+    background:    var(--accent-primary);
+    color:         #2A2620;
     font-weight:   600;
     border:        none;
     border-radius: 8px;
@@ -86,8 +86,8 @@
   }
   .btn-neon:hover::after { opacity: 1; }
   .btn-neon:hover {
-    background:  var(--btn-gold-hover);
-    box-shadow:  0 0 14px rgba(232, 185, 35, 0.30);
+    background:  var(--accent-hover);
+    box-shadow:  0 2px 10px rgba(160, 124, 46, 0.25);
     transform:   translateY(-1px);
   }
   .btn-neon:active  { transform: translateY(0); }

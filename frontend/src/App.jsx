@@ -118,13 +118,13 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             {/* Backend connection indicator */}
-            <div className="flex items-center gap-2 bg-darkBg px-3 py-1.5 rounded-full border border-borderSubtle">
+            <div className="flex items-center gap-2 bg-darkCard px-3 py-1.5 rounded-full border border-borderSubtle shadow-sm">
               <span className={`w-2 h-2 rounded-full ${
                 backendStatus === 'connected' ? 'bg-successGreen shadow-[0_0_8px_var(--success)]' :
                 backendStatus === 'checking' ? 'bg-btnGold animate-pulse' :
                 'bg-errorRed shadow-[0_0_8px_var(--error)]'
               }`} />
-              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider">
+              <span className="text-[10px] font-bold text-accentPrimary uppercase tracking-wider">
                 {backendStatus === 'connected' ? 'API CONNECTED' :
                  backendStatus === 'checking' ? 'CONNECTING...' :
                  'API DISCONNECTED'}
