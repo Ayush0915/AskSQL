@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.routers import query
 from backend.app.upload.session_manager import (
     session_schemas,
+    session_questions,
     clear_session,
     cleanup_inactive_sessions,
     startup_cleanup
@@ -13,7 +14,8 @@ from backend.app.upload.session_manager import (
 from backend.app.upload.csv_parser import parse_and_load_csv
 from backend.app.upload.schema_generator import (
     generate_schema_descriptions_llm,
-    embed_session_table_schema
+    embed_session_table_schema,
+    generate_example_questions_llm
 )
 from pathlib import Path
 
@@ -61,7 +63,7 @@ async def health_check():
 @app.get("/api/schema")
 async def get_schema_browser(session_id: str):
     """
-    Returns the table schemas and columns to populate the schema browser sidebar for this session.
+    Returns the table schemas, columns, and custom sample questions to populate the UI for this session.
     """
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id is required.")
@@ -76,7 +78,15 @@ async def get_schema_browser(session_id: str):
             "columns": list(table_info["columns"].keys())
         })
         
-    return {"tables": formatted_schema}
+    # Retrieve or generate custom business questions for this database layout
+    questions = session_questions.get(session_id, [])
+    if formatted_schema and not questions:
+        questions = generate_example_questions_llm(session_id)
+        
+    return {
+        "tables": formatted_schema,
+        "example_questions": questions
+    }
 
 @app.post("/api/upload")
 async def upload_dataset(session_id: str = Form(...), files: list[UploadFile] = File(...)):
@@ -140,7 +150,9 @@ async def upload_dataset(session_id: str = Form(...), files: list[UploadFile] = 
             logger.error(f"Error processing file '{filename}': {e}")
             raise HTTPException(status_code=500, detail=f"Error processing file '{filename}': {str(e)}")
 
-    return {"status": "success", "tables": processed_tables}
+    # Generate custom sample business questions for this newly uploaded dataset
+    questions = generate_example_questions_llm(session_id)
+    return {"status": "success", "tables": processed_tables, "example_questions": questions}
 
 @app.post("/api/clear")
 async def clear_dataset(payload: dict):
@@ -215,4 +227,6 @@ async def load_sample_dataset(payload: dict):
             logger.error(f"Error loading sample file '{filename}': {e}")
             raise HTTPException(status_code=500, detail=f"Failed to load sample file '{filename}': {str(e)}")
 
-    return {"status": "success", "tables": processed_tables}
+    # Generate custom sample business questions for this sample dataset
+    questions = generate_example_questions_llm(session_id)
+    return {"status": "success", "tables": processed_tables, "example_questions": questions}

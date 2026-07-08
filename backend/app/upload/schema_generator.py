@@ -184,3 +184,76 @@ def embed_session_table_schema(
     except Exception as e:
         logger.error(f"Error indexing schema to ChromaDB for session {session_id}: {e}")
         raise RuntimeError(f"ChromaDB indexing error: {str(e)}")
+
+def generate_example_questions_llm(session_id: str) -> list[str]:
+    """
+    Queries Llama 3 on Groq with the session's active schema layout,
+    and returns a list of 4-5 relevant business questions suited for the dataset.
+    """
+    from backend.app.upload.session_manager import session_schemas, session_questions
+    
+    tables = session_schemas.get(session_id, {})
+    if not tables:
+        return []
+        
+    schema_details = []
+    for table_name, table_info in tables.items():
+        cols = ", ".join(table_info["columns"].keys())
+        schema_details.append(f"Table '{table_name}' ({table_info['description']}): columns = [{cols}]")
+        
+    schema_text = "\n".join(schema_details)
+    
+    api_key = config.GROQ_API_KEY
+    if api_key:
+        client = Groq(api_key=api_key)
+    else:
+        client = Groq()
+        
+    prompt = f"""You are a business analyst looking at a database schema.
+Here are the tables in the database:
+{schema_text}
+
+Generate exactly 5 distinct, practical, and highly relevant business questions that can be answered using SQL SELECT queries on these tables.
+Make sure the questions:
+1. Cover different tables and JOINs if possible.
+2. Range from simple aggregates (e.g. total counts) to deeper analysis (e.g. top categories, monthly trends).
+3. Do not ask for things that aren't in the columns.
+4. Keep questions concise and written in natural, friendly English.
+
+Respond with ONLY a JSON array of strings. No markdown fences, no formatting, no preamble, and no extra text.
+Example format:
+["What is the total number of items sold?", "Which customer city has the most orders?"]
+"""
+    logger.info(f"Generating dynamic example questions for session {session_id} using Llama 3...")
+    
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": "You are a business analyst helper. Output a raw JSON list of strings only."},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.3
+        )
+        response_text = chat_completion.choices[0].message.content.strip()
+        
+        # Clean markdown wraps if any
+        if response_text.startswith("```"):
+            response_text = re.sub(r"^```(?:json)?\s*(.*?)\s*```$", r"\1", response_text, flags=re.DOTALL | re.IGNORECASE).strip()
+            
+        questions = json.loads(response_text)
+        if isinstance(questions, list):
+            valid_questions = [str(q) for q in questions[:6]]
+            session_questions[session_id] = valid_questions
+            logger.info(f"Successfully generated dynamic questions for session {session_id}")
+            return valid_questions
+    except Exception as e:
+        logger.error(f"Failed to generate example questions: {e}")
+        
+    # Fallback to standard generic questions
+    fallback = [
+        "Show a preview of the tables.",
+        "How many rows are in each table?"
+    ]
+    session_questions[session_id] = fallback
+    return fallback

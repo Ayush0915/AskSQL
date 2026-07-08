@@ -23,6 +23,7 @@ export default function App() {
 
   const [schema, setSchema] = useState([])
   const [isDatasetLoaded, setIsDatasetLoaded] = useState(false)
+  const [exampleQuestions, setExampleQuestions] = useState([])
   const [history, setHistory] = useState(() => {
     const saved = localStorage.getItem(`asksql_history_${sessionId}`)
     return saved ? JSON.parse(saved) : []
@@ -51,6 +52,7 @@ export default function App() {
       try {
         const data = await fetchSchema(sessionId)
         setSchema(data.tables || [])
+        setExampleQuestions(data.example_questions || [])
         if (data.tables && data.tables.length > 0) {
           setIsDatasetLoaded(true)
         }
@@ -124,6 +126,7 @@ export default function App() {
 
   const handleDatasetCleared = () => {
     setSchema([])
+    setExampleQuestions([])
     setIsDatasetLoaded(false)
     setCurrentResponse(null)
     setErrorMsg(null)
@@ -171,8 +174,9 @@ export default function App() {
             isLoading={isSchemaLoading} 
             sessionId={sessionId}
             isDatasetLoaded={isDatasetLoaded}
-            onDatasetLoaded={(tables) => {
+            onDatasetLoaded={(tables, questions) => {
               setSchema(tables)
+              setExampleQuestions(questions || [])
               setIsDatasetLoaded(true)
             }}
             onDatasetCleared={handleDatasetCleared}
@@ -193,6 +197,7 @@ export default function App() {
               onSubmit={handleQuerySubmit} 
               isLoading={isLoading} 
               isDatasetLoaded={isDatasetLoaded} 
+              exampleQuestions={exampleQuestions}
             />
           </div>
 

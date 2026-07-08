@@ -1,16 +1,7 @@
 import { useState } from 'react'
 import { Search, Sparkles, ChevronRight } from 'lucide-react'
 
-const EXAMPLE_QUESTIONS = [
-  'How many orders were placed in total?',
-  'What are the top 5 best-selling products by quantity?',
-  'Which customers have spent more than $500 total?',
-  'What is the average order value by month?',
-  'How many orders were delivered late?',
-  'Which product category has the most orders?',
-]
-
-export default function QueryInput({ onSubmit, isLoading, isDatasetLoaded }) {
+export default function QueryInput({ onSubmit, isLoading, isDatasetLoaded, exampleQuestions = [] }) {
   const [question, setQuestion] = useState('')
 
   const handleSubmit = (e) => {
@@ -98,22 +89,24 @@ export default function QueryInput({ onSubmit, isLoading, isDatasetLoaded }) {
       </form>
 
       {/* Example questions */}
-      <div className="mt-6">
-        <p className="text-[10px] text-textSecondary uppercase tracking-wider mb-3 font-semibold font-sans">Try an example</p>
-        <div className="flex flex-wrap gap-2">
-          {EXAMPLE_QUESTIONS.map((q, i) => (
-            <button
-              key={i}
-              id={`example-question-${i}`}
-              onClick={() => handleExample(q)}
-              disabled={isLoading || !isDatasetLoaded}
-              className="text-xs bg-darkCard hover:bg-darkCardHover border border-borderSubtle hover:border-accentPrimary/40 text-textSecondary hover:text-accentPrimary rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
-            >
-              {q}
-            </button>
-          ))}
+      {isDatasetLoaded && exampleQuestions && exampleQuestions.length > 0 && (
+        <div className="mt-6 animate-fade-in-up">
+          <p className="text-[10px] text-textSecondary uppercase tracking-wider mb-3 font-semibold font-sans">Try an example</p>
+          <div className="flex flex-wrap gap-2">
+            {exampleQuestions.map((q, i) => (
+              <button
+                key={i}
+                id={`example-question-${i}`}
+                onClick={() => handleExample(q)}
+                disabled={isLoading}
+                className="text-xs bg-darkCard hover:bg-darkCardHover border border-borderSubtle hover:border-accentPrimary/40 text-textSecondary hover:text-accentPrimary rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

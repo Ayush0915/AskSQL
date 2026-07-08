@@ -14,6 +14,10 @@ logging.basicConfig(level=logging.INFO)
 # Structure: { session_id: { table_name: { "description": "...", "columns": [...] } } }
 session_schemas = {}
 
+# In-memory registry to cache dynamically generated example questions per session.
+# Structure: { session_id: [question1, question2, ...] }
+session_questions = {}
+
 def get_session_dir(session_id: str) -> Path:
     """Returns the absolute path to the session subdirectory."""
     # Sanitize session_id to ensure it's alphanumeric/hyphens/underscores only
@@ -36,9 +40,11 @@ def clear_session(session_id: str):
     """Deletes the DuckDB file, clears the Chroma collection, and drops the schema cache for this session."""
     logger.info(f"Clearing session {session_id}")
     
-    # 1. Clear Schema Cache
+    # 1. Clear Schema Cache & Questions
     if session_id in session_schemas:
         del session_schemas[session_id]
+    if session_id in session_questions:
+        del session_questions[session_id]
         
     # 2. Clear Chroma collection
     try:

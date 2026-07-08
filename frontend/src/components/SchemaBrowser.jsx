@@ -75,7 +75,7 @@ export default function SchemaBrowser({
       const data = await uploadDataset(sessionId, selectedFiles)
       if (data.status === "success") {
         // Fetch new schema to populate sidebar
-        onDatasetLoaded(data.tables)
+        onDatasetLoaded(data.tables, data.example_questions)
       } else {
         setUploadError(data.error || "Upload failed.")
       }
@@ -95,7 +95,7 @@ export default function SchemaBrowser({
     try {
       const data = await loadSampleDataset(sessionId)
       if (data.status === "success") {
-        onDatasetLoaded(data.tables)
+        onDatasetLoaded(data.tables, data.example_questions)
       } else {
         setUploadError("Failed to load sample dataset.")
       }
