@@ -1,5 +1,6 @@
 import re
 import io
+import csv
 import logging
 import duckdb
 from pathlib import Path
@@ -11,6 +12,52 @@ logging.basicConfig(level=logging.INFO)
 # Size Limits: 50MB per file, 200MB total per session
 MAX_FILE_SIZE = 50 * 1024 * 1024
 MAX_SESSION_SIZE = 200 * 1024 * 1024
+
+# Regex to match a number with thousands separators (e.g., 1,071 or 1,234,567.89 or -1,000)
+THOUSANDS_SEP_RE = re.compile(r'^[+-]?(?:\d{1,3})(?:,\d{3})+(?:\.\d+)?$')
+
+def clean_csv_field(val: str) -> str:
+    """Strips commas from numbers with thousands separators."""
+    val_stripped = val.strip()
+    if THOUSANDS_SEP_RE.match(val_stripped):
+        return val_stripped.replace(',', '')
+    return val
+
+def clean_csv_file(input_source, output_file_path: Path, is_bytes: bool = False):
+    """
+    Reads a CSV (from either file path or bytes) line by line,
+    removes thousands separators from numeric columns, and writes to a clean output CSV file.
+    Uses streaming to keep memory footprint minimal.
+    """
+    if is_bytes:
+        f_in = io.TextIOWrapper(io.BytesIO(input_source), encoding='utf-8-sig', errors='ignore', newline='')
+    else:
+        f_in = open(input_source, mode='r', encoding='utf-8-sig', errors='ignore', newline='')
+
+    try:
+        # Detect delimiter using simple counting heuristic on the header
+        sample = f_in.read(4096)
+        f_in.seek(0)
+        delimiter = ','
+        if sample:
+            first_line = sample.split('\n')[0]
+            comma_count = first_line.count(',')
+            semicolon_count = first_line.count(';')
+            tab_count = first_line.count('\t')
+            if semicolon_count > comma_count and semicolon_count > tab_count:
+                delimiter = ';'
+            elif tab_count > comma_count and tab_count > semicolon_count:
+                delimiter = '\t'
+
+        with open(output_file_path, mode='w', encoding='utf-8-sig', errors='ignore', newline='') as f_out:
+            reader = csv.reader(f_in, delimiter=delimiter)
+            writer = csv.writer(f_out, delimiter=delimiter)
+            
+            for row in reader:
+                cleaned_row = [clean_csv_field(cell) for cell in row]
+                writer.writerow(cleaned_row)
+    finally:
+        f_in.close()
 
 def sanitize_identifier(name: str, prefix: str) -> str:
     """
@@ -59,15 +106,13 @@ def parse_and_load_csv(session_id: str, filename: str, file_bytes: bytes = None,
     session_dir = get_session_dir(session_id)
     session_dir.mkdir(parents=True, exist_ok=True)
 
-    temp_csv_path = None
+    # Clean the CSV file to remove thousands separators and write to temp_csv_path
+    temp_csv_path = session_dir / f"temp_{table_name}.csv"
     if file_path is not None:
-        target_csv_path = file_path
+        clean_csv_file(file_path, temp_csv_path, is_bytes=False)
     else:
-        # Write bytes to a temporary CSV file
-        temp_csv_path = session_dir / f"temp_{table_name}.csv"
-        with open(temp_csv_path, "wb") as f:
-            f.write(file_bytes)
-        target_csv_path = temp_csv_path
+        clean_csv_file(file_bytes, temp_csv_path, is_bytes=True)
+    target_csv_path = temp_csv_path
 
     # 2. Insert into session DuckDB using DuckDB's native read_csv_auto
     db_path = get_duckdb_path(session_id)
