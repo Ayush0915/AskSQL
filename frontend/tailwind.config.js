@@ -7,18 +7,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        darkBg: "#FAF6EE",       // Warm off-white page background
-        darkCard: "#F3EFE6",     // Light gray card background
-        textPrimary: "#2A2620",  // Dark charcoal/brown text
-        textSecondary: "#6B5F4F",// Muted warm gray/brown text
-        accentPrimary: "#B8860B",// Dark gold (for text/links contrast)
-        accentPrimaryHover: "#9E730A", // Dark gold hover
-        accentSecondary: "#C1443A", // Warm red
-        btnGold: "#E8B923",      // Bright gold (for solid buttons only)
-        btnGoldHover: "#C99A16", // Bright gold hover
-        successGreen: "#4ADE80", // Emerald success color
-        errorRed: "#C1443A",     // Warm red error color
-        borderSubtle: "#E5DDD0"  // Thin border color
+        darkBg: "var(--bg-primary)",       // Warm off-white page background
+        darkCard: "var(--bg-card)",     // Light gray card background
+        textPrimary: "var(--text-primary)",  // Dark charcoal/brown text
+        textSecondary: "var(--text-secondary)",// Muted warm gray/brown text
+        accentPrimary: "var(--accent-primary)",// Dark gold (for text/links contrast)
+        accentPrimaryHover: "var(--accent-hover)", // Dark gold hover
+        accentSecondary: "var(--error)", // Warm red / error
+        btnGold: "var(--btn-gold)",      // Bright gold (for solid buttons only)
+        btnGoldHover: "var(--btn-gold-hover)", // Bright gold hover
+        successGreen: "var(--success)", // Green success color
+        errorRed: "var(--error)",     // Warm red error color
+        borderSubtle: "var(--border-subtle)"  // Thin border color
       },
       fontFamily: {
         sans: ["Outfit", "Inter", "sans-serif"],

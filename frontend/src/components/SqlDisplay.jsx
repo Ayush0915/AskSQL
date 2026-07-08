@@ -21,7 +21,7 @@ export default function SqlDisplay({ sql, explanation, retriesUsed }) {
     <div className="space-y-4 animate-fade-in-up">
       {/* Explanation card */}
       {explanation && (
-        <div className="glass-card p-5 border-l-4 border-l-accentPrimary bg-darkCard/50">
+        <div className="glass-card p-5 border-l-4 border-l-accentPrimary">
           <div className="flex items-start gap-3">
             <div className="w-6.5 h-6.5 rounded-full bg-accentPrimary/10 border border-accentPrimary/25 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
               <span className="text-accentPrimary text-xs font-bold font-serif">?</span>
@@ -50,7 +50,7 @@ export default function SqlDisplay({ sql, explanation, retriesUsed }) {
             <Code2 size={16} className="text-accentPrimary" />
             <span className="text-sm font-semibold text-textPrimary font-sans">Generated SQL Query</span>
             {retriesUsed > 0 && (
-              <span className="text-[10px] font-semibold bg-[#C1443A]/10 text-[#C1443A] border border-[#C1443A]/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
+              <span className="text-[10px] font-semibold bg-errorRed/10 text-errorRed border border-errorRed/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
                 {retriesUsed} retry{retriesUsed !== 1 ? 'ies' : ''}
               </span>
             )}

@@ -59,7 +59,7 @@ export default function SchemaBrowser({ schema, isLoading }) {
               {/* Table Title Block */}
               <button
                 onClick={() => toggleTable(table.table_name)}
-                className="w-full flex items-start gap-2 p-3 text-left hover:bg-white/[0.02] transition-colors"
+                className="w-full flex items-start gap-2 p-3 text-left hover:bg-black/[0.02] transition-colors"
                 id={`schema-table-${table.table_name}`}
               >
                 <span className="text-textSecondary mt-0.5 shrink-0">
@@ -75,7 +75,7 @@ export default function SchemaBrowser({ schema, isLoading }) {
 
               {/* Columns list when expanded */}
               {isExpanded && (
-                <div className="bg-darkBg/30 border-t border-borderSubtle p-3 space-y-2">
+                <div className="bg-darkBg border-t border-borderSubtle p-3 space-y-2">
                   <div className="flex items-center gap-1.5 text-[9px] text-textSecondary uppercase tracking-wider font-semibold mb-1.5">
                     <Columns size={10} className="text-accentPrimary" />
                     <span>Columns</span>
@@ -84,11 +84,11 @@ export default function SchemaBrowser({ schema, isLoading }) {
                     {table.columns.map((columnName) => (
                       <div
                         key={columnName}
-                        className="flex items-center justify-between text-xs bg-darkCard/80 border border-borderSubtle/60 rounded px-2.5 py-1.5"
+                        className="flex items-center justify-between text-xs bg-darkCard border border-borderSubtle rounded px-2.5 py-1.5"
                       >
                         <span className="font-mono text-textPrimary text-[11px]">{columnName}</span>
                         {columnName.endsWith('_id') && (
-                          <span className="text-[9px] bg-accentPrimary/10 text-accentPrimary border border-accentPrimary/25 font-bold px-1 rounded">PK/FK</span>
+                          <span className="text-[9px] bg-accentPrimary/10 text-accentPrimary border border-accentPrimary/30 font-bold px-1.5 py-0.5 rounded">PK/FK</span>
                         )}
                       </div>
                     ))}

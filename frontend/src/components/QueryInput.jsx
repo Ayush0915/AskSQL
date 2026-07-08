@@ -33,7 +33,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
     <div className="w-full">
       {/* Heading */}
       <div className="mb-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-darkCard/60 border border-borderSubtle rounded-full px-4 py-1.5 mb-4 shadow-sm">
+        <div className="inline-flex items-center gap-2 bg-darkCard border border-borderSubtle rounded-full px-4 py-1.5 mb-4 shadow-sm">
           <Sparkles size={13} className="text-accentPrimary" />
           <span className="text-accentPrimary text-[10px] font-bold tracking-wider uppercase">
             Powered by Llama 3 + ChromaDB RAG
@@ -51,7 +51,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
 
       {/* Main input form */}
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative glass-card p-1 group focus-within:border-accentPrimary/40 transition-colors duration-200 bg-darkCard/60 border-borderSubtle">
+        <div className="relative glass-card p-1 group focus-within:border-accentPrimary/50 transition-colors duration-200">
           <div className="flex items-start gap-3 p-3">
             <Search size={20} className="text-textSecondary mt-1 shrink-0" />
             <textarea
@@ -102,7 +102,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
               id={`example-question-${i}`}
               onClick={() => handleExample(q)}
               disabled={isLoading}
-              className="text-xs bg-darkCard/50 hover:bg-darkCard border border-borderSubtle hover:border-accentPrimary/25 text-textSecondary hover:text-accentPrimary rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
+              className="text-xs bg-darkCard hover:bg-[#EDE8DF] border border-borderSubtle hover:border-accentPrimary/40 text-textSecondary hover:text-accentPrimary rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
             >
               {q}
             </button>
@@ -119,7 +119,7 @@ function LoadingDots() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="pulse-dot w-1.5 h-1.5 bg-[#2A2620] rounded-full inline-block"
+          className="pulse-dot w-1.5 h-1.5 bg-textPrimary rounded-full inline-block"
         />
       ))}
     </span>

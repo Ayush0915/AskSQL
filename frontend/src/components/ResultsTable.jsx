@@ -76,7 +76,7 @@ export default function ResultsTable({ results }) {
         <button
           id="download-csv-btn"
           onClick={handleDownloadCSV}
-          className="flex items-center gap-1.5 text-xs text-textSecondary hover:text-accentPrimary bg-darkCard hover:bg-darkCard/95 border border-borderSubtle hover:border-accentPrimary/35 rounded-md px-3.5 py-1.5 transition-all duration-150 shadow-sm"
+          className="flex items-center gap-1.5 text-xs text-textSecondary hover:text-accentPrimary bg-darkCard hover:bg-[#EDE8DF] border border-borderSubtle hover:border-accentPrimary/35 rounded-md px-3.5 py-1.5 transition-all duration-150 shadow-sm"
         >
           <Download size={13} />
           <span>Export CSV</span>
@@ -88,7 +88,7 @@ export default function ResultsTable({ results }) {
         <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
           <table className="w-full text-sm" id="results-table">
             <thead className="sticky top-0 z-10">
-              <tr className="bg-darkBg/95 backdrop-blur border-b border-borderSubtle">
+              <tr className="bg-[#EDE8DF] border-b border-borderSubtle">
                 {columns.map(col => (
                   <th
                     key={col}
@@ -115,7 +115,7 @@ export default function ResultsTable({ results }) {
                 <tr
                   key={i}
                   className={`border-b border-borderSubtle/40 transition-colors duration-100 ${
-                    i % 2 === 0 ? 'bg-darkCard/40' : 'bg-darkCard/10'
+                    i % 2 === 0 ? 'bg-transparent' : 'bg-darkBg'
                   } hover:bg-accentPrimary/5`}
                 >
                   {columns.map(col => (

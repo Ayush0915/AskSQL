@@ -2,127 +2,152 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
+ * Single source of truth. Tailwind config mirrors these values.
+ * Components should use Tailwind token classes (bg-darkBg, text-textPrimary…)
+ * which resolve to these vars at build time.
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+:root {
+  --bg-primary:       #FAF6EE;   /* warm off-white page background            */
+  --bg-card:          #F3EFE6;   /* card / surface background                 */
+  --bg-card-hover:    #EDE8DF;   /* card hover / pressed state                */
+  --border-subtle:    #E5DDD0;   /* thin borders on cards                     */
+  --border-medium:    #D4C9B8;   /* slightly stronger border (table dividers) */
+  --text-primary:     #2A2620;   /* headings & body copy                      */
+  --text-secondary:   #6B5F4F;   /* captions, labels, metadata                */
+  --accent-primary:   #B8860B;   /* dark gold — links, icons, text accents    */
+  --accent-hover:     #9E730A;   /* dark gold hover                           */
+  --btn-gold:         #E8B923;   /* bright gold — solid button bg only        */
+  --btn-gold-hover:   #C99A16;   /* bright gold button hover                  */
+  --success:          #2E7D32;   /* green — success badges                    */
+  --error:            #C1443A;   /* warm red — error badges                   */
+  --sql-bg:           #1E1E2E;   /* ALWAYS dark — SQL code block background   */
+}
+
 @layer base {
   * {
     box-sizing: border-box;
   }
 
   body {
-    background-color: #FAF6EE;
-    color: #2A2620;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
     font-family: 'Outfit', 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: #FAF6EE;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: #E5DDD0;
-    border-radius: 3px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: #C2BAA8;
-  }
+  /* ── Scrollbars (light theme) ─────────────────────────────────────────── */
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb  { background: var(--border-subtle); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-medium); }
 }
 
 @layer components {
-  /* Warm off-white card effect */
+
+  /* ── Cards ────────────────────────────────────────────────────────────── */
   .glass-card {
-    background: #F3EFE6;
-    border: 1px solid #E5DDD0;
+    background:    var(--bg-card);
+    border:        1px solid var(--border-subtle);
     border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(42, 38, 32, 0.04);
+    box-shadow:    0 2px 8px rgba(42, 38, 32, 0.06),
+                   0 1px 2px rgba(42, 38, 32, 0.04);
   }
 
-  /* Bright gold button */
-  .btn-neon {
-    background: #E8B923;
-    color: #2A2620;
-    font-weight: 600;
-    border: none;
+  /* Card that sits inside another card — slightly recessed */
+  .inner-card {
+    background:    var(--bg-card-hover);
+    border:        1px solid var(--border-subtle);
     border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
+  }
+
+  /* ── Primary action button (bright gold) ──────────────────────────────── */
+  .btn-neon {
+    background:    var(--btn-gold);
+    color:         var(--text-primary);
+    font-weight:   600;
+    border:        none;
+    border-radius: 8px;
+    cursor:        pointer;
+    transition:    all 0.2s ease;
+    position:      relative;
+    overflow:      hidden;
   }
   .btn-neon::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.15);
-    opacity: 0;
+    content:    '';
+    position:   absolute;
+    inset:      0;
+    background: rgba(255,255,255,0.18);
+    opacity:    0;
     transition: opacity 0.2s;
   }
-  .btn-neon:hover::after {
-    opacity: 1;
-  }
+  .btn-neon:hover::after { opacity: 1; }
   .btn-neon:hover {
-    background: #C99A16;
-    box-shadow: 0 0 12px rgba(232, 185, 35, 0.25);
-    transform: translateY(-1px);
+    background:  var(--btn-gold-hover);
+    box-shadow:  0 0 14px rgba(232, 185, 35, 0.30);
+    transform:   translateY(-1px);
   }
-  .btn-neon:active {
-    transform: translateY(0);
-  }
+  .btn-neon:active  { transform: translateY(0); }
   .btn-neon:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
+    opacity:    0.45;
+    cursor:     not-allowed;
+    transform:  none;
     box-shadow: none;
   }
 
-  /* Pulsing dot for loading */
-  .pulse-dot {
-    animation: pulse-dot 1.4s ease-in-out infinite;
-  }
+  /* ── Loading dots ─────────────────────────────────────────────────────── */
+  .pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
   .pulse-dot:nth-child(2) { animation-delay: 0.2s; }
   .pulse-dot:nth-child(3) { animation-delay: 0.4s; }
 
-  /* Code block */
+  /* ── SQL code block — intentionally always dark ───────────────────────── */
   .code-block {
-    background: #020617;
-    border: 1px solid rgba(56, 189, 248, 0.15);
+    background:    var(--sql-bg);       /* #1E1E2E — never changes */
+    border:        1px solid rgba(255,255,255,0.08);
     border-radius: 8px;
-    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: #7dd3fc;
-    padding: 1rem;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
+    font-family:   'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size:     0.82rem;
+    line-height:   1.65;
+    color:         #CBD5E1;             /* slate-300 — readable on dark bg */
+    padding:       1rem 1.25rem;
+    overflow-x:    auto;
+    white-space:   pre-wrap;
+    word-break:    break-word;
+  }
+
+  /* ── Skeleton loader (light-theme tones) ──────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--border-subtle) 25%,
+      var(--bg-card-hover) 50%,
+      var(--border-subtle) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
   }
 }
 
+/* ── Keyframes ──────────────────────────────────────────────────────────── */
 @keyframes pulse-dot {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40% { transform: scale(1); opacity: 1; }
+  40%           { transform: scale(1);   opacity: 1;   }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0);    }
 }
 
 @keyframes shimmer {
   from { background-position: -200% 0; }
-  to   { background-position: 200% 0; }
+  to   { background-position:  200% 0; }
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.4s ease both;
-}
-
-.skeleton {
-  background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 4px;
+  animation: fadeInUp 0.35s ease both;
 }
