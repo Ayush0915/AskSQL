@@ -98,8 +98,11 @@ def parse_and_load_csv(session_id: str, filename: str, file_bytes: bytes = None,
             seen.add(scol)
             sanitized_cols.append(scol)
             
-        # Create final table with sanitized column names
-        select_items = [f'"{orig}" AS "{san}"' for orig, san in zip(original_cols, sanitized_cols)]
+        # Create final table with sanitized column names (properly escape double quotes in raw column names)
+        select_items = []
+        for orig, san in zip(original_cols, sanitized_cols):
+            escaped_orig = orig.replace('"', '""')
+            select_items.append(f'"{escaped_orig}" AS "{san}"')
         select_clause = ", ".join(select_items)
         conn.execute(f'CREATE OR REPLACE TABLE "{table_name}" AS SELECT {select_clause} FROM "{raw_table_name}"')
         
