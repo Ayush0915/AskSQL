@@ -10,19 +10,19 @@
  * ────────────────────────────────────────────────────────────────────────────
  */
 :root {
-  --bg-primary:       #FAF6EE;   /* warm off-white page background            */
-  --bg-card:          #F3EFE6;   /* card / surface background                 */
-  --bg-card-hover:    #EDE8DF;   /* card hover / pressed state                */
-  --border-subtle:    #E5DDD0;   /* thin borders on cards                     */
-  --border-medium:    #D4C9B8;   /* slightly stronger border (table dividers) */
-  --text-primary:     #2A2620;   /* headings & body copy                      */
-  --text-secondary:   #6B5F4F;   /* captions, labels, metadata                */
-  --accent-primary:   #B8860B;   /* dark gold — links, icons, text accents    */
-  --accent-hover:     #9E730A;   /* dark gold hover                           */
-  --btn-gold:         #E8B923;   /* bright gold — solid button bg only        */
-  --btn-gold-hover:   #C99A16;   /* bright gold button hover                  */
-  --success:          #2E7D32;   /* green — success badges                    */
-  --error:            #C1443A;   /* warm red — error badges                   */
+  --bg-primary:       #FBF9F6;   /* soft, clean warm-white                    */
+  --bg-card:          #F4F1EB;   /* elegant muted cream card                  */
+  --bg-card-hover:    #EAE6DC;   /* soft hover tone                           */
+  --border-subtle:    #E6DFD4;   /* very delicate sand-colored border         */
+  --border-medium:    #D6CBB8;   /* subtle divider border                     */
+  --text-primary:     #322E2A;   /* softer off-black for relaxed reading      */
+  --text-secondary:   #756C60;   /* warm slate gray for subtext               */
+  --accent-primary:   #A07C2E;   /* refined matte antique bronze              */
+  --accent-hover:     #876620;   /* dark brass hover                          */
+  --btn-gold:         #DFB235;   /* warm matte mustard gold                   */
+  --btn-gold-hover:   #C29826;   /* matte gold hover                          */
+  --success:          #4E8B62;   /* sage green — extremely gentle success     */
+  --error:            #B85C50;   /* terracotta red — soft error/failed color  */
   --sql-bg:           #1E1E2E;   /* ALWAYS dark — SQL code block background   */
 }
 
@@ -163,6 +163,12 @@
 }
 .bg-darkCard {
   background-color: var(--bg-card) !important;
+}
+.bg-darkCardHover {
+  background-color: var(--bg-card-hover) !important;
+}
+.hover\:bg-darkCardHover:hover {
+  background-color: var(--bg-card-hover) !important;
 }
 .text-textPrimary {
   color: var(--text-primary) !important;

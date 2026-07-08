@@ -9,6 +9,7 @@ export default {
       colors: {
         darkBg: "var(--bg-primary)",       // Warm off-white page background
         darkCard: "var(--bg-card)",     // Light gray card background
+        darkCardHover: "var(--bg-card-hover)", // Muted hover state
         textPrimary: "var(--text-primary)",  // Dark charcoal/brown text
         textSecondary: "var(--text-secondary)",// Muted warm gray/brown text
         accentPrimary: "var(--accent-primary)",// Dark gold (for text/links contrast)

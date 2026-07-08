@@ -43,7 +43,7 @@ export default function QueryHistory({ history, onRerun, onClear }) {
         {[...history].reverse().map((item, i) => (
           <div
             key={item.id}
-            className="group relative bg-darkCard hover:bg-[#EDE8DF] border border-borderSubtle hover:border-accentPrimary/35 rounded-lg p-3.5 transition-all duration-150 cursor-pointer shadow-sm"
+            className="group relative bg-darkCard hover:bg-darkCardHover border border-borderSubtle hover:border-accentPrimary/35 rounded-lg p-3.5 transition-all duration-150 cursor-pointer shadow-sm"
             onClick={() => onRerun(item.question)}
             id={`history-item-${item.id}`}
           >

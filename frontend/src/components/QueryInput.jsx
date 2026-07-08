@@ -102,7 +102,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
               id={`example-question-${i}`}
               onClick={() => handleExample(q)}
               disabled={isLoading}
-              className="text-xs bg-darkCard hover:bg-[#EDE8DF] border border-borderSubtle hover:border-accentPrimary/40 text-textSecondary hover:text-accentPrimary rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
+              className="text-xs bg-darkCard hover:bg-darkCardHover border border-borderSubtle hover:border-accentPrimary/40 text-textSecondary hover:text-accentPrimary rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
             >
               {q}
             </button>
