@@ -107,24 +107,24 @@ export default function App() {
   return (
     <div className="min-h-screen bg-darkBg text-textPrimary flex flex-col font-sans">
       {/* Top Navbar */}
-      <header className="border-b border-white/[0.04] bg-[#454E5A]/50 sticky top-0 z-50 backdrop-blur">
+      <header className="border-b border-borderSubtle bg-darkCard/55 sticky top-0 z-50 backdrop-blur shadow-sm">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="text-xl">⚡</span>
-            <span className="font-bold text-lg text-[#F5F0E6] tracking-tight font-serif">
+            <span className="font-bold text-lg text-textPrimary tracking-tight font-serif">
               AskSQL
             </span>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Backend connection indicator */}
-            <div className="flex items-center gap-2 bg-[#3D4550]/80 px-3 py-1.5 rounded-full border border-white/[0.05]">
+            <div className="flex items-center gap-2 bg-darkBg/90 px-3 py-1.5 rounded-full border border-borderSubtle">
               <span className={`w-2 h-2 rounded-full ${
                 backendStatus === 'connected' ? 'bg-[#4ADE80] shadow-[0_0_8px_rgba(74,222,128,0.5)]' :
                 backendStatus === 'checking' ? 'bg-[#E8B923] animate-pulse' :
                 'bg-[#C1443A] shadow-[0_0_8px_rgba(193,68,58,0.5)]'
               }`} />
-              <span className="text-xs font-semibold text-[#C2BAA8]">
+              <span className="text-[10px] font-bold text-textSecondary uppercase tracking-wider">
                 {backendStatus === 'connected' ? 'API CONNECTED' :
                  backendStatus === 'checking' ? 'CONNECTING...' :
                  'API DISCONNECTED'}
@@ -149,15 +149,15 @@ export default function App() {
 
         {/* Center Panel - Input, Output, Results */}
         <div className="lg:col-span-3 space-y-8">
-          <div className="glass-card p-6 bg-[#454E5A]/40">
+          <div className="glass-card p-6 bg-darkCard/40">
             <QueryInput onSubmit={handleQuerySubmit} isLoading={isLoading} />
           </div>
 
           {/* Render Error if any */}
           {errorMsg && (
-            <div className="bg-[#C1443A]/10 border border-[#C1443A]/30 text-[#F5F0E6] p-5 rounded-xl text-sm leading-relaxed animate-fade-in-up">
+            <div className="bg-[#C1443A]/10 border border-[#C1443A]/25 text-textPrimary p-5 rounded-xl text-sm leading-relaxed animate-fade-in-up">
               <strong className="block font-semibold mb-1 text-[#C1443A]">Pipeline Execution Failure</strong>
-              <span className="text-[#C2BAA8]">{errorMsg}</span>
+              <span className="text-textSecondary">{errorMsg}</span>
             </div>
           )}
 
@@ -190,8 +190,8 @@ export default function App() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.04] bg-[#454E5A]/25 py-5 mt-auto">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs text-[#C2BAA8]">
+      <footer className="border-t border-borderSubtle bg-darkCard/25 py-5 mt-auto">
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between text-xs text-textSecondary">
           <p>© 2026 AskSQL Project</p>
           <div className="flex gap-4">
             <span>Solo Capstone Project</span>

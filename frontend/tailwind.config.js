@@ -7,16 +7,18 @@ export default {
   theme: {
     extend: {
       colors: {
-        darkBg: "#3D4550",       // Warm slate page background
-        darkCard: "#454E5A",     // Subtly lighter warm slate card background
-        textPrimary: "#F5F0E6",  // Warm off-white
-        textSecondary: "#C2BAA8",// Muted warm gray
-        accentPrimary: "#E8B923",// Yellow/gold
-        accentPrimaryHover: "#C99A16", // Darker gold
+        darkBg: "#FAF6EE",       // Warm off-white page background
+        darkCard: "#F3EFE6",     // Light gray card background
+        textPrimary: "#2A2620",  // Dark charcoal/brown text
+        textSecondary: "#6B5F4F",// Muted warm gray/brown text
+        accentPrimary: "#B8860B",// Dark gold (for text/links contrast)
+        accentPrimaryHover: "#9E730A", // Dark gold hover
         accentSecondary: "#C1443A", // Warm red
+        btnGold: "#E8B923",      // Bright gold (for solid buttons only)
+        btnGoldHover: "#C99A16", // Bright gold hover
         successGreen: "#4ADE80", // Emerald success color
         errorRed: "#C1443A",     // Warm red error color
-        borderSubtle: "rgba(255,255,255,0.08)"
+        borderSubtle: "#E5DDD0"  // Thin border color
       },
       fontFamily: {
         sans: ["Outfit", "Inter", "sans-serif"],

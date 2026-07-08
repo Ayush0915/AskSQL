@@ -33,27 +33,27 @@ export default function QueryInput({ onSubmit, isLoading }) {
     <div className="w-full">
       {/* Heading */}
       <div className="mb-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-white/[0.02] border border-white/[0.06] rounded-full px-4 py-1.5 mb-4">
-          <Sparkles size={13} className="text-[#E8B923]" />
-          <span className="text-[#E8B923] text-[10px] font-semibold tracking-wider uppercase">
+        <div className="inline-flex items-center gap-2 bg-darkCard/60 border border-borderSubtle rounded-full px-4 py-1.5 mb-4 shadow-sm">
+          <Sparkles size={13} className="text-accentPrimary" />
+          <span className="text-accentPrimary text-[10px] font-bold tracking-wider uppercase">
             Powered by Llama 3 + ChromaDB RAG
           </span>
         </div>
-        <h1 className="text-3xl md:text-4xl font-normal font-serif text-[#F5F0E6] mb-3 leading-tight">
+        <h1 className="text-3xl md:text-4xl font-normal font-serif text-textPrimary mb-3 leading-tight">
           Ask your database anything
         </h1>
-        {/* Short Gold Underline Divider */}
-        <div className="w-12 h-[2.5px] bg-[#E8B923] mx-auto mb-4 rounded-full" />
-        <p className="text-[#C2BAA8] text-sm md:text-base max-w-xl mx-auto font-sans leading-relaxed">
+        {/* Dark Gold Underline Divider */}
+        <div className="w-12 h-[2.5px] bg-accentPrimary mx-auto mb-4 rounded-full" />
+        <p className="text-textSecondary text-sm md:text-base max-w-xl mx-auto font-sans leading-relaxed">
           Type a question in plain English — AskSQL generates the SQL, validates it, executes it, and explains what it found.
         </p>
       </div>
 
       {/* Main input form */}
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative glass-card p-1 group focus-within:border-[#E8B923]/40 transition-colors duration-200 bg-[#454E5A]/60">
+        <div className="relative glass-card p-1 group focus-within:border-accentPrimary/40 transition-colors duration-200 bg-darkCard/60 border-borderSubtle">
           <div className="flex items-start gap-3 p-3">
-            <Search size={20} className="text-[#C2BAA8] mt-1 shrink-0" />
+            <Search size={20} className="text-textSecondary mt-1 shrink-0" />
             <textarea
               id="query-input"
               value={question}
@@ -61,14 +61,14 @@ export default function QueryInput({ onSubmit, isLoading }) {
               onKeyDown={handleKeyDown}
               placeholder="e.g. What were the top 5 best-selling product categories last month?"
               rows={3}
-              className="flex-1 bg-transparent text-[#F5F0E6] placeholder-[#C2BAA8]/50 resize-none outline-none text-sm md:text-base leading-relaxed font-sans"
+              className="flex-1 bg-transparent text-textPrimary placeholder-textSecondary/50 resize-none outline-none text-sm md:text-base leading-relaxed font-sans"
               disabled={isLoading}
               aria-label="Natural language query input"
             />
           </div>
           <div className="flex items-center justify-between px-4 pb-3">
-            <span className="text-[11px] text-[#C2BAA8]/70 font-sans">
-              Press <kbd className="bg-[#3D4550] px-1.5 py-0.5 rounded text-[#C2BAA8] font-mono text-[10px]">Ctrl+Enter</kbd> to submit
+            <span className="text-[11px] text-textSecondary/70 font-sans">
+              Press <kbd className="bg-darkBg px-1.5 py-0.5 rounded text-textSecondary font-mono text-[10px] border border-borderSubtle">Ctrl+Enter</kbd> to submit
             </span>
             <button
               id="submit-query-btn"
@@ -94,7 +94,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
 
       {/* Example questions */}
       <div className="mt-6">
-        <p className="text-[10px] text-[#C2BAA8] uppercase tracking-wider mb-3 font-semibold font-sans">Try an example</p>
+        <p className="text-[10px] text-textSecondary uppercase tracking-wider mb-3 font-semibold font-sans">Try an example</p>
         <div className="flex flex-wrap gap-2">
           {EXAMPLE_QUESTIONS.map((q, i) => (
             <button
@@ -102,7 +102,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
               id={`example-question-${i}`}
               onClick={() => handleExample(q)}
               disabled={isLoading}
-              className="text-xs bg-[#454E5A]/40 hover:bg-[#454E5A]/80 border border-white/[0.04] hover:border-[#E8B923]/25 text-[#C2BAA8] hover:text-[#E8B923] rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
+              className="text-xs bg-darkCard/50 hover:bg-darkCard border border-borderSubtle hover:border-accentPrimary/25 text-textSecondary hover:text-accentPrimary rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
             >
               {q}
             </button>

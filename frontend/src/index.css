@@ -8,8 +8,8 @@
   }
 
   body {
-    background-color: #3D4550;
-    color: #F5F0E6;
+    background-color: #FAF6EE;
+    color: #2A2620;
     font-family: 'Outfit', 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -20,28 +20,27 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #454E5A;
+    background: #FAF6EE;
   }
   ::-webkit-scrollbar-thumb {
-    background: #5C6674;
+    background: #E5DDD0;
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #6B7684;
+    background: #C2BAA8;
   }
 }
 
 @layer components {
-  /* Glass card effect */
+  /* Warm off-white card effect */
   .glass-card {
-    background: rgba(69, 78, 90, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(232, 185, 35, 0.1);
+    background: #F3EFE6;
+    border: 1px solid #E5DDD0;
     border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(42, 38, 32, 0.04);
   }
 
-  /* Neon glow gold button */
+  /* Bright gold button */
   .btn-neon {
     background: #E8B923;
     color: #2A2620;
@@ -66,7 +65,7 @@
   }
   .btn-neon:hover {
     background: #C99A16;
-    box-shadow: 0 0 15px rgba(232, 185, 35, 0.35);
+    box-shadow: 0 0 12px rgba(232, 185, 35, 0.25);
     transform: translateY(-1px);
   }
   .btn-neon:active {
