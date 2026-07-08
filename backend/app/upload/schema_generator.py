@@ -2,8 +2,6 @@ import json
 import re
 import logging
 from groq import Groq
-import chromadb
-from chromadb.utils import embedding_functions
 from backend.app.config import config
 from backend.app.upload.session_manager import (
     session_schemas,
@@ -12,11 +10,6 @@ from backend.app.upload.session_manager import (
 
 logger = logging.getLogger("asksql-schema-generator")
 logging.basicConfig(level=logging.INFO)
-
-# Define embedding function using sentence-transformers (matches retriever)
-emb_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"
-)
 
 def find_relationships(session_id: str) -> list[str]:
     """
@@ -154,36 +147,8 @@ def embed_session_table_schema(
     table_desc: str,
     columns_desc: dict
 ):
-    """Embeds the generated table schema description into the session-specific ChromaDB collection."""
-    coll_name = get_chroma_collection_name(session_id)
-    
-    try:
-        client = chromadb.PersistentClient(path=config.CHROMA_PERSIST_DIR)
-        collection = client.get_or_create_collection(
-            name=coll_name,
-            embedding_function=emb_fn
-        )
-        
-        # Format document representation
-        doc = format_table_document(table_name, table_desc, columns_desc)
-        
-        # Remove table from collection if it was already indexed to avoid duplicates
-        doc_id = f"table_{table_name}"
-        try:
-            collection.delete(ids=[doc_id])
-        except Exception:
-            pass
-            
-        # Add to collection
-        collection.add(
-            documents=[doc],
-            metadatas=[{"table_name": table_name}],
-            ids=[doc_id]
-        )
-        logger.info(f"Indexed schema for table '{table_name}' in Chroma collection '{coll_name}'")
-    except Exception as e:
-        logger.error(f"Error indexing schema to ChromaDB for session {session_id}: {e}")
-        raise RuntimeError(f"ChromaDB indexing error: {str(e)}")
+    """Obsolete. Schema is automatically persisted to session storage on disk."""
+    logger.info(f"Indexed schema for table '{table_name}' in memory/disk.")
 
 def generate_example_questions_llm(session_id: str) -> list[str]:
     """

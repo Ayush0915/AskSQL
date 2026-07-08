@@ -13,7 +13,7 @@ class SQLValidator:
         # Limit pattern to see if query already has a LIMIT clause
         self.limit_pattern = re.compile(r"\bLIMIT\s+\d+\b", re.IGNORECASE)
 
-    def validate_sql(self, sql: str, session_id: str) -> tuple[bool, str | None]:
+    def validate_sql(self, sql: str, session_id: str = None) -> tuple[bool, str | None]:
         """
         Validates the SQL query against security constraints and the session's schema metadata.
         Returns (is_valid, error_reason).
@@ -57,6 +57,12 @@ class SQLValidator:
                 return True, None
 
             # Get session schema
+            if not session_id:
+                if session_schemas:
+                    session_id = list(session_schemas.keys())[0]
+                else:
+                    session_id = "default"
+
             schemas = session_schemas.get(session_id, {})
             if not schemas:
                 return False, "No dataset loaded for this session. Please upload a dataset first."

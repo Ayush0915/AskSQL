@@ -193,11 +193,8 @@ async def load_sample_dataset(payload: dict):
     for file_path in sample_files:
         filename = file_path.name
         try:
-            with open(file_path, "rb") as f:
-                content = f.read()
-                
-            # Parse CSV and load into DuckDB
-            load_data = parse_and_load_csv(session_id, filename, content)
+            # Parse CSV and load into DuckDB directly from file path (no read into memory)
+            load_data = parse_and_load_csv(session_id, filename, file_path=file_path)
             table_name = load_data["table_name"]
             columns_and_types = load_data["types"]
             preview = load_data["preview"]
