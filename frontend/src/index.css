@@ -151,3 +151,47 @@
 .animate-fade-in-up {
   animation: fadeInUp 0.35s ease both;
 }
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * ─── TAILWIND CACHE BYPASS OVERRIDES ────────────────────────────────────────
+ * Explicitly define core utility classes so they apply immediately even if
+ * Vite/Tailwind dev server configuration caching prevents class compilation.
+ * ────────────────────────────────────────────────────────────────────────────
+ */
+.bg-darkBg {
+  background-color: var(--bg-primary) !important;
+}
+.bg-darkCard {
+  background-color: var(--bg-card) !important;
+}
+.text-textPrimary {
+  color: var(--text-primary) !important;
+}
+.text-textSecondary {
+  color: var(--text-secondary) !important;
+}
+.text-accentPrimary {
+  color: var(--accent-primary) !important;
+}
+.border-borderSubtle {
+  border-color: var(--border-subtle) !important;
+}
+.bg-successGreen {
+  background-color: var(--success) !important;
+}
+.bg-errorRed {
+  background-color: var(--error) !important;
+}
+.text-errorRed {
+  color: var(--error) !important;
+}
+.border-errorRed {
+  border-color: var(--error) !important;
+}
+.bg-btnGold {
+  background-color: var(--btn-gold) !important;
+}
+.bg-btnGoldHover {
+  background-color: var(--btn-gold-hover) !important;
+}
+
