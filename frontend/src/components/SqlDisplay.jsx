@@ -18,17 +18,21 @@ export default function SqlDisplay({ sql, explanation, retriesUsed }) {
   }
 
   return (
-    <div className="space-y-3 animate-fade-in-up">
+    <div className="space-y-4 animate-fade-in-up">
       {/* Explanation card */}
       {explanation && (
-        <div className="glass-card p-4 border-l-4 border-l-sky-500/60">
+        <div className="glass-card p-5 border-l-4 border-l-[#E8B923]/80 bg-[#454E5A]/50">
           <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-sky-500/20 flex items-center justify-center shrink-0 mt-0.5">
-              <span className="text-sky-400 text-xs font-bold">?</span>
+            <div className="w-6.5 h-6.5 rounded-full bg-[#E8B923]/10 border border-[#E8B923]/25 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+              <span className="text-[#E8B923] text-xs font-bold font-serif">?</span>
             </div>
             <div>
-              <p className="text-xs font-semibold text-sky-400 uppercase tracking-wide mb-1">Plain-English Explanation</p>
-              <p className="text-slate-300 text-sm leading-relaxed">{explanation}</p>
+              <p className="text-[11px] font-semibold text-[#E8B923] uppercase tracking-wider mb-1.5 font-sans">
+                Plain-English Explanation
+              </p>
+              <p className="text-[#F5F0E6] text-sm leading-relaxed font-sans font-normal">
+                {explanation}
+              </p>
             </div>
           </div>
         </div>
@@ -39,43 +43,43 @@ export default function SqlDisplay({ sql, explanation, retriesUsed }) {
         <button
           id="toggle-sql-btn"
           onClick={() => setExpanded(e => !e)}
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-white/[0.03] transition-colors duration-150"
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors duration-150"
           aria-expanded={expanded}
         >
-          <div className="flex items-center gap-2">
-            <Code2 size={15} className="text-indigo-400" />
-            <span className="text-sm font-semibold text-slate-200">Generated SQL</span>
+          <div className="flex items-center gap-2.5">
+            <Code2 size={16} className="text-[#E8B923]" />
+            <span className="text-sm font-semibold text-[#F5F0E6] font-sans">Generated SQL Query</span>
             {retriesUsed > 0 && (
-              <span className="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/20 rounded-full px-2 py-0.5">
-                {retriesUsed} retry
+              <span className="text-[10px] font-semibold bg-[#C1443A]/20 text-[#C1443A] border border-[#C1443A]/20 rounded-full px-2 py-0.5 uppercase tracking-wider">
+                {retriesUsed} retry{retriesUsed !== 1 ? 'ies' : ''}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500">{expanded ? 'Hide' : 'Show'}</span>
+            <span className="text-xs text-[#C2BAA8] font-sans">{expanded ? 'Hide Query' : 'Show Query'}</span>
             {expanded
-              ? <ChevronUp size={15} className="text-slate-500" />
-              : <ChevronDown size={15} className="text-slate-500" />
+              ? <ChevronUp size={15} className="text-[#C2BAA8]" />
+              : <ChevronDown size={15} className="text-[#C2BAA8]" />
             }
           </div>
         </button>
 
         {expanded && (
-          <div className="border-t border-slate-700/50">
+          <div className="border-t border-white/[0.05]">
             {/* Copy button */}
-            <div className="flex justify-end px-4 pt-3">
+            <div className="flex justify-end px-5 pt-3.5">
               <button
                 id="copy-sql-btn"
                 onClick={handleCopy}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-sky-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md px-3 py-1.5 transition-all duration-150"
+                className="flex items-center gap-1.5 text-xs text-[#C2BAA8] hover:text-[#E8B923] bg-[#3D4550] hover:bg-[#3D4550]/80 border border-white/[0.06] hover:border-[#E8B923]/30 rounded-md px-3 py-1.5 transition-all duration-150"
               >
-                {copied ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
-                {copied ? 'Copied!' : 'Copy SQL'}
+                {copied ? <Check size={13} className="text-[#4ADE80]" /> : <Copy size={13} />}
+                {copied ? 'Copied' : 'Copy SQL'}
               </button>
             </div>
             {/* Code block */}
-            <div className="p-4">
-              <pre className="code-block" id="sql-code-block">
+            <div className="p-5">
+              <pre className="code-block font-mono text-xs rounded-lg" id="sql-code-block" style={{ background: '#1E1E2E' }}>
                 <SQLHighlight sql={sql} />
               </pre>
             </div>
@@ -86,26 +90,41 @@ export default function SqlDisplay({ sql, explanation, retriesUsed }) {
   )
 }
 
-/* Very lightweight keyword highlighter — no external dep needed */
-const KEYWORDS = /\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|AND|OR|NOT|IN|AS|DISTINCT|COUNT|SUM|AVG|MIN|MAX|CASE|WHEN|THEN|ELSE|END|WITH|UNION|ALL|NULL|IS|BETWEEN|LIKE|ASC|DESC|BY)\b/gi
+/* Very lightweight keyword & string literal highlighter */
+const TOKEN_REGEX = /('[^']*')|\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|AND|OR|NOT|IN|AS|DISTINCT|COUNT|SUM|AVG|MIN|MAX|CASE|WHEN|THEN|ELSE|END|WITH|UNION|ALL|NULL|IS|BETWEEN|LIKE|ASC|DESC|BY)\b/gi
+const KEYWORDS_ONLY = /^(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|AND|OR|NOT|IN|AS|DISTINCT|COUNT|SUM|AVG|MIN|MAX|CASE|WHEN|THEN|ELSE|END|WITH|UNION|ALL|NULL|IS|BETWEEN|LIKE|ASC|DESC|BY)$/i
 
 function SQLHighlight({ sql }) {
   if (!sql) return null
 
-  const parts = sql.split(KEYWORDS)
-  const matches = sql.match(KEYWORDS) || []
+  const parts = sql.split(TOKEN_REGEX)
 
-  const result = []
-  parts.forEach((part, i) => {
-    result.push(<span key={`p${i}`} className="text-slate-300">{part}</span>)
-    if (matches[i]) {
-      result.push(
-        <span key={`k${i}`} className="text-sky-300 font-semibold">
-          {matches[i]}
-        </span>
-      )
-    }
-  })
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part === undefined || part === null || part === '') return null
 
-  return <>{result}</>
+        // If it starts and ends with single quotes, color it coral/soft red
+        if (part.startsWith("'") && part.endsWith("'")) {
+          return (
+            <span key={i} className="text-[#C1443A] font-medium">
+              {part}
+            </span>
+          )
+        }
+
+        // If it is a SQL keyword, color it yellow/gold
+        if (KEYWORDS_ONLY.test(part)) {
+          return (
+            <span key={i} className="text-[#E8B923] font-semibold">
+              {part}
+            </span>
+          )
+        }
+
+        // General text color in off-white
+        return <span key={i} className="text-[#F5F0E6]">{part}</span>
+      })}
+    </>
+  )
 }

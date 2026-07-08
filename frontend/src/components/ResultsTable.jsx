@@ -8,9 +8,11 @@ export default function ResultsTable({ results }) {
   if (!results || results.length === 0) {
     return (
       <div className="glass-card p-8 text-center animate-fade-in-up">
-        <Table size={36} className="text-slate-600 mx-auto mb-3" />
-        <p className="text-slate-400 font-medium">Query returned no rows</p>
-        <p className="text-slate-600 text-sm mt-1">Try a broader question or check the schema browser.</p>
+        <Table size={36} className="text-[#C2BAA8] mx-auto mb-3 opacity-40" />
+        <p className="text-[#F5F0E6] font-medium font-serif text-lg">Query returned no rows</p>
+        <p className="text-[#C2BAA8] text-xs mt-1.5 font-sans">
+          Try a broader question or check the schema browser.
+        </p>
       </div>
     )
   }
@@ -63,21 +65,21 @@ export default function ResultsTable({ results }) {
   return (
     <div className="animate-fade-in-up">
       {/* Header bar */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2">
-          <Table size={16} className="text-sky-400" />
-          <span className="text-sm font-semibold text-slate-200">Results</span>
-          <span className="bg-sky-500/20 text-sky-300 text-xs font-mono px-2 py-0.5 rounded-full">
+          <Table size={16} className="text-[#E8B923]" />
+          <span className="text-lg font-medium font-serif text-[#F5F0E6] tracking-tight">Results</span>
+          <span className="bg-[#E8B923] text-[#2A2620] text-[10px] font-bold px-2 py-0.5 rounded-full">
             {results.length} row{results.length !== 1 ? 's' : ''}
           </span>
         </div>
         <button
           id="download-csv-btn"
           onClick={handleDownloadCSV}
-          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-sky-300 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-sky-500/30 rounded-md px-3 py-1.5 transition-all duration-150"
+          className="flex items-center gap-1.5 text-xs text-[#C2BAA8] hover:text-[#E8B923] bg-[#454E5A] hover:bg-[#454E5A]/95 border border-white/[0.04] hover:border-[#E8B923]/35 rounded-md px-3.5 py-1.5 transition-all duration-150 shadow-sm"
         >
           <Download size={13} />
-          CSV
+          <span>Export CSV</span>
         </button>
       </div>
 
@@ -86,16 +88,16 @@ export default function ResultsTable({ results }) {
         <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
           <table className="w-full text-sm" id="results-table">
             <thead className="sticky top-0 z-10">
-              <tr className="bg-slate-900/90 backdrop-blur border-b border-slate-700/60">
+              <tr className="bg-[#3D4550]/95 backdrop-blur border-b border-white/[0.05]">
                 {columns.map(col => (
                   <th
                     key={col}
-                    className="px-4 py-3 text-left font-semibold text-slate-300 whitespace-nowrap cursor-pointer select-none hover:text-sky-300 group"
+                    className="px-4 py-3.5 text-left font-semibold text-[#C2BAA8] whitespace-nowrap cursor-pointer select-none hover:text-[#E8B923] group text-xs uppercase tracking-wider"
                     onClick={() => handleSort(col)}
                   >
                     <div className="flex items-center gap-1.5">
                       <span>{col}</span>
-                      <span className="text-slate-600 group-hover:text-sky-400 transition-colors">
+                      <span className="text-[#C2BAA8]/50 group-hover:text-[#E8B923] transition-colors">
                         {sortKey === col
                           ? sortDir === 'asc'
                             ? <ChevronUp size={13} />
@@ -112,14 +114,14 @@ export default function ResultsTable({ results }) {
               {sorted.map((row, i) => (
                 <tr
                   key={i}
-                  className={`border-b border-slate-800/50 transition-colors duration-100 ${
-                    i % 2 === 0 ? 'bg-slate-900/20' : 'bg-slate-800/10'
-                  } hover:bg-sky-500/5`}
+                  className={`border-b border-white/[0.03] transition-colors duration-100 ${
+                    i % 2 === 0 ? 'bg-[#454E5A]/15' : 'bg-[#454E5A]/5'
+                  } hover:bg-[#E8B923]/5`}
                 >
                   {columns.map(col => (
-                    <td key={col} className="px-4 py-2.5 text-slate-300 whitespace-nowrap font-mono text-xs">
+                    <td key={col} className="px-4 py-2.5 text-[#F5F0E6] whitespace-nowrap font-mono text-[11px]">
                       {row[col] === null || row[col] === undefined
-                        ? <span className="text-slate-600 italic">null</span>
+                        ? <span className="text-[#C2BAA8]/45 italic">null</span>
                         : String(row[col])}
                     </td>
                   ))}

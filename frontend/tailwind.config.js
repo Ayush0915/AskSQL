@@ -7,15 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        darkBg: "#0f172a",       // Sleek slate-900 background
-        darkCard: "#1e293b",     // Slate-800 card background
-        neonAccent: "#38bdf8",   // Sky-400 accent color
-        neonPurple: "#a855f7",   // Purple-500 secondary
-        successGreen: "#10b981", // Emerald-500 status color
-        errorRed: "#ef4444"      // Red-500 status color
+        darkBg: "#3D4550",       // Warm slate page background
+        darkCard: "#454E5A",     // Subtly lighter warm slate card background
+        textPrimary: "#F5F0E6",  // Warm off-white
+        textSecondary: "#C2BAA8",// Muted warm gray
+        accentPrimary: "#E8B923",// Yellow/gold
+        accentPrimaryHover: "#C99A16", // Darker gold
+        accentSecondary: "#C1443A", // Warm red
+        successGreen: "#4ADE80", // Emerald success color
+        errorRed: "#C1443A",     // Warm red error color
+        borderSubtle: "rgba(255,255,255,0.08)"
       },
       fontFamily: {
-        sans: ["Outfit", "Inter", "sans-serif"]
+        sans: ["Outfit", "Inter", "sans-serif"],
+        serif: ["'Source Serif 4'", "Georgia", "serif"]
       }
     },
   },

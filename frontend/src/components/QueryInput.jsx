@@ -33,23 +33,27 @@ export default function QueryInput({ onSubmit, isLoading }) {
     <div className="w-full">
       {/* Heading */}
       <div className="mb-6 text-center">
-        <div className="inline-flex items-center gap-2 bg-sky-500/10 border border-sky-500/20 rounded-full px-4 py-1.5 mb-4">
-          <Sparkles size={14} className="text-sky-400" />
-          <span className="text-sky-400 text-xs font-medium tracking-wide uppercase">Powered by Llama 3 + ChromaDB RAG</span>
+        <div className="inline-flex items-center gap-2 bg-white/[0.02] border border-white/[0.06] rounded-full px-4 py-1.5 mb-4">
+          <Sparkles size={13} className="text-[#E8B923]" />
+          <span className="text-[#E8B923] text-[10px] font-semibold tracking-wider uppercase">
+            Powered by Llama 3 + ChromaDB RAG
+          </span>
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-sky-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent mb-2">
+        <h1 className="text-3xl md:text-4xl font-normal font-serif text-[#F5F0E6] mb-3 leading-tight">
           Ask your database anything
         </h1>
-        <p className="text-slate-400 text-sm md:text-base max-w-xl mx-auto">
+        {/* Short Gold Underline Divider */}
+        <div className="w-12 h-[2.5px] bg-[#E8B923] mx-auto mb-4 rounded-full" />
+        <p className="text-[#C2BAA8] text-sm md:text-base max-w-xl mx-auto font-sans leading-relaxed">
           Type a question in plain English — AskSQL generates the SQL, validates it, executes it, and explains what it found.
         </p>
       </div>
 
       {/* Main input form */}
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative glass-card p-1 group focus-within:border-sky-500/40 transition-colors duration-200">
+        <div className="relative glass-card p-1 group focus-within:border-[#E8B923]/40 transition-colors duration-200 bg-[#454E5A]/60">
           <div className="flex items-start gap-3 p-3">
-            <Search size={20} className="text-slate-500 mt-1 shrink-0" />
+            <Search size={20} className="text-[#C2BAA8] mt-1 shrink-0" />
             <textarea
               id="query-input"
               value={question}
@@ -57,20 +61,20 @@ export default function QueryInput({ onSubmit, isLoading }) {
               onKeyDown={handleKeyDown}
               placeholder="e.g. What were the top 5 best-selling product categories last month?"
               rows={3}
-              className="flex-1 bg-transparent text-slate-100 placeholder-slate-500 resize-none outline-none text-sm md:text-base leading-relaxed"
+              className="flex-1 bg-transparent text-[#F5F0E6] placeholder-[#C2BAA8]/50 resize-none outline-none text-sm md:text-base leading-relaxed font-sans"
               disabled={isLoading}
               aria-label="Natural language query input"
             />
           </div>
           <div className="flex items-center justify-between px-4 pb-3">
-            <span className="text-xs text-slate-600">
-              Press <kbd className="bg-slate-700 px-1.5 py-0.5 rounded text-slate-400 font-mono text-xs">Ctrl+Enter</kbd> to submit
+            <span className="text-[11px] text-[#C2BAA8]/70 font-sans">
+              Press <kbd className="bg-[#3D4550] px-1.5 py-0.5 rounded text-[#C2BAA8] font-mono text-[10px]">Ctrl+Enter</kbd> to submit
             </span>
             <button
               id="submit-query-btn"
               type="submit"
               disabled={!question.trim() || isLoading}
-              className="btn-neon flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
+              className="btn-neon flex items-center gap-2 px-5 py-2.5 text-sm font-semibold tracking-wide"
             >
               {isLoading ? (
                 <>
@@ -89,8 +93,8 @@ export default function QueryInput({ onSubmit, isLoading }) {
       </form>
 
       {/* Example questions */}
-      <div className="mt-5">
-        <p className="text-xs text-slate-600 uppercase tracking-wide mb-3 font-medium">Try an example</p>
+      <div className="mt-6">
+        <p className="text-[10px] text-[#C2BAA8] uppercase tracking-wider mb-3 font-semibold font-sans">Try an example</p>
         <div className="flex flex-wrap gap-2">
           {EXAMPLE_QUESTIONS.map((q, i) => (
             <button
@@ -98,7 +102,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
               id={`example-question-${i}`}
               onClick={() => handleExample(q)}
               disabled={isLoading}
-              className="text-xs bg-slate-800/60 hover:bg-slate-700/80 border border-slate-700/60 hover:border-sky-500/30 text-slate-400 hover:text-sky-300 rounded-full px-3 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-xs bg-[#454E5A]/40 hover:bg-[#454E5A]/80 border border-white/[0.04] hover:border-[#E8B923]/25 text-[#C2BAA8] hover:text-[#E8B923] rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
             >
               {q}
             </button>
@@ -115,7 +119,7 @@ function LoadingDots() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="pulse-dot w-1.5 h-1.5 bg-white rounded-full inline-block"
+          className="pulse-dot w-1.5 h-1.5 bg-[#2A2620] rounded-full inline-block"
         />
       ))}
     </span>

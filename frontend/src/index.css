@@ -8,8 +8,8 @@
   }
 
   body {
-    background-color: #0f172a;
-    color: #f1f5f9;
+    background-color: #3D4550;
+    color: #F5F0E6;
     font-family: 'Outfit', 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -20,31 +20,31 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #1e293b;
+    background: #454E5A;
   }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: #5C6674;
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: #6B7684;
   }
 }
 
 @layer components {
   /* Glass card effect */
   .glass-card {
-    background: rgba(30, 41, 59, 0.8);
+    background: rgba(69, 78, 90, 0.85);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(232, 185, 35, 0.1);
     border-radius: 12px;
   }
 
-  /* Neon glow button */
+  /* Neon glow gold button */
   .btn-neon {
-    background: linear-gradient(135deg, #0ea5e9, #6366f1);
-    color: white;
+    background: #E8B923;
+    color: #2A2620;
     font-weight: 600;
     border: none;
     border-radius: 8px;
@@ -57,7 +57,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.15);
     opacity: 0;
     transition: opacity 0.2s;
   }
@@ -65,7 +65,8 @@
     opacity: 1;
   }
   .btn-neon:hover {
-    box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    background: #C99A16;
+    box-shadow: 0 0 15px rgba(232, 185, 35, 0.35);
     transform: translateY(-1px);
   }
   .btn-neon:active {
