@@ -1,7 +1,7 @@
 import json
 import re
 import logging
-from groq import Groq
+from groq import AsyncGroq
 from backend.app.config import config
 from backend.app.upload.session_manager import (
     session_schemas,
@@ -42,7 +42,7 @@ def format_table_document(table_name: str, table_desc: str, columns: dict) -> st
         doc_lines.append(f"  - {col_name}: {col_desc}")
     return "\n".join(doc_lines)
 
-def generate_schema_descriptions_llm(
+async def generate_schema_descriptions_llm(
     session_id: str,
     table_name: str,
     columns_and_types: dict,
@@ -54,9 +54,9 @@ def generate_schema_descriptions_llm(
     """
     api_key = config.GROQ_API_KEY
     if api_key:
-        client = Groq(api_key=api_key)
+        client = AsyncGroq(api_key=api_key)
     else:
-        client = Groq()
+        client = AsyncGroq()
 
     # Pre-cache/register the table structure in session_schemas so we can detect relationships
     if session_id not in session_schemas:
@@ -97,7 +97,7 @@ Sample rows:
     logger.info(f"Generating descriptions for table '{table_name}' using Llama 3...")
     
     try:
-        chat_completion = client.chat.completions.create(
+        chat_completion = await client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "You are a database documenter that outputs raw JSON descriptions only."},
                 {"role": "user", "content": prompt}
@@ -150,7 +150,7 @@ def embed_session_table_schema(
     """Obsolete. Schema is automatically persisted to session storage on disk."""
     logger.info(f"Indexed schema for table '{table_name}' in memory/disk.")
 
-def generate_example_questions_llm(session_id: str) -> list[str]:
+async def generate_example_questions_llm(session_id: str) -> list[str]:
     """
     Queries Llama 3 on Groq with the session's active schema layout,
     and returns a list of 4-5 relevant business questions suited for the dataset.
@@ -170,9 +170,9 @@ def generate_example_questions_llm(session_id: str) -> list[str]:
     
     api_key = config.GROQ_API_KEY
     if api_key:
-        client = Groq(api_key=api_key)
+        client = AsyncGroq(api_key=api_key)
     else:
-        client = Groq()
+        client = AsyncGroq()
         
     prompt = f"""You are a business analyst looking at a database schema.
 Here are the tables in the database:
@@ -192,7 +192,7 @@ Example format:
     logger.info(f"Generating dynamic example questions for session {session_id} using Llama 3...")
     
     try:
-        chat_completion = client.chat.completions.create(
+        chat_completion = await client.chat.completions.create(
             messages=[
                 {"role": "system", "content": "You are a business analyst helper. Output a raw JSON list of strings only."},
                 {"role": "user", "content": prompt}

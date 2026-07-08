@@ -81,7 +81,7 @@ async def get_schema_browser(session_id: str):
     # Retrieve or generate custom business questions for this database layout
     questions = session_questions.get(session_id, [])
     if formatted_schema and not questions:
-        questions = generate_example_questions_llm(session_id)
+        questions = await generate_example_questions_llm(session_id)
         
     return {
         "tables": formatted_schema,
@@ -116,33 +116,20 @@ async def upload_dataset(session_id: str = Form(...), files: list[UploadFile] = 
         file_payloads.append((file.filename, content))
 
     # 2. Parse, load, and generate schemas
+    tables_to_describe = []
     for filename, content in file_payloads:
         try:
-            # Step 2a: Parse CSV, infer types, and load into DuckDB
+            # Step 2a: Parse CSV, infer types, and load into DuckDB (done sequentially to avoid DB locks)
             load_data = parse_and_load_csv(session_id, filename, content)
             
-            table_name = load_data["table_name"]
-            columns_and_types = load_data["types"]
-            preview = load_data["preview"]
-            
-            # Step 2b: Generate table/column descriptions using Llama 3
-            desc_data = generate_schema_descriptions_llm(
-                session_id=session_id,
-                table_name=table_name,
-                columns_and_types=columns_and_types,
-                sample_rows=preview
-            )
-            
-            # Step 2c: Index descriptions in session-specific Chroma collection
-            embed_session_table_schema(
-                session_id=session_id,
-                table_name=table_name,
-                table_desc=desc_data["table_description"],
-                columns_desc=desc_data["columns"]
-            )
+            tables_to_describe.append({
+                "table_name": load_data["table_name"],
+                "columns_and_types": load_data["types"],
+                "preview": load_data["preview"]
+            })
             
             processed_tables.append({
-                "table_name": table_name,
+                "table_name": load_data["table_name"],
                 "row_count": load_data["row_count"],
                 "columns": load_data["columns"]
             })
@@ -150,8 +137,29 @@ async def upload_dataset(session_id: str = Form(...), files: list[UploadFile] = 
             logger.error(f"Error processing file '{filename}': {e}")
             raise HTTPException(status_code=500, detail=f"Error processing file '{filename}': {str(e)}")
 
+    # Step 2b: Generate table/column descriptions using Llama 3 concurrently
+    async def describe_table(table):
+        try:
+            desc_data = await generate_schema_descriptions_llm(
+                session_id=session_id,
+                table_name=table["table_name"],
+                columns_and_types=table["columns_and_types"],
+                sample_rows=table["preview"]
+            )
+            embed_session_table_schema(
+                session_id=session_id,
+                table_name=table["table_name"],
+                table_desc=desc_data["table_description"],
+                columns_desc=desc_data["columns"]
+            )
+        except Exception as e:
+            logger.error(f"Error generating descriptions for '{table['table_name']}': {e}")
+
+    if tables_to_describe:
+        await asyncio.gather(*(describe_table(t) for t in tables_to_describe))
+
     # Generate custom sample business questions for this newly uploaded dataset
-    questions = generate_example_questions_llm(session_id)
+    questions = await generate_example_questions_llm(session_id)
     return {"status": "success", "tables": processed_tables, "example_questions": questions}
 
 @app.post("/api/clear")
@@ -190,33 +198,21 @@ async def load_sample_dataset(payload: dict):
     logger.info(f"Loading {len(sample_files)} sample CSV files for session {session_id}...")
 
     # Load all sample CSVs
+    tables_to_describe = []
     for file_path in sample_files:
         filename = file_path.name
         try:
-            # Parse CSV and load into DuckDB directly from file path (no read into memory)
+            # Parse CSV and load into DuckDB directly from file path (done sequentially to avoid DB locks)
             load_data = parse_and_load_csv(session_id, filename, file_path=file_path)
-            table_name = load_data["table_name"]
-            columns_and_types = load_data["types"]
-            preview = load_data["preview"]
             
-            # Generate descriptions using LLM (reuses the prompt logic for consistency)
-            desc_data = generate_schema_descriptions_llm(
-                session_id=session_id,
-                table_name=table_name,
-                columns_and_types=columns_and_types,
-                sample_rows=preview
-            )
-            
-            # Index descriptions in session Chroma collection
-            embed_session_table_schema(
-                session_id=session_id,
-                table_name=table_name,
-                table_desc=desc_data["table_description"],
-                columns_desc=desc_data["columns"]
-            )
+            tables_to_describe.append({
+                "table_name": load_data["table_name"],
+                "columns_and_types": load_data["types"],
+                "preview": load_data["preview"]
+            })
             
             processed_tables.append({
-                "table_name": table_name,
+                "table_name": load_data["table_name"],
                 "row_count": load_data["row_count"],
                 "columns": load_data["columns"]
             })
@@ -224,6 +220,27 @@ async def load_sample_dataset(payload: dict):
             logger.error(f"Error loading sample file '{filename}': {e}")
             raise HTTPException(status_code=500, detail=f"Failed to load sample file '{filename}': {str(e)}")
 
+    # Generate table/column descriptions using Llama 3 concurrently
+    async def describe_table(table):
+        try:
+            desc_data = await generate_schema_descriptions_llm(
+                session_id=session_id,
+                table_name=table["table_name"],
+                columns_and_types=table["columns_and_types"],
+                sample_rows=table["preview"]
+            )
+            embed_session_table_schema(
+                session_id=session_id,
+                table_name=table["table_name"],
+                table_desc=desc_data["table_description"],
+                columns_desc=desc_data["columns"]
+            )
+        except Exception as e:
+            logger.error(f"Error generating sample descriptions for '{table['table_name']}': {e}")
+
+    if tables_to_describe:
+        await asyncio.gather(*(describe_table(t) for t in tables_to_describe))
+
     # Generate custom sample business questions for this sample dataset
-    questions = generate_example_questions_llm(session_id)
+    questions = await generate_example_questions_llm(session_id)
     return {"status": "success", "tables": processed_tables, "example_questions": questions}
