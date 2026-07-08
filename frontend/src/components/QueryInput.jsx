@@ -10,12 +10,12 @@ const EXAMPLE_QUESTIONS = [
   'Which product category has the most orders?',
 ]
 
-export default function QueryInput({ onSubmit, isLoading }) {
+export default function QueryInput({ onSubmit, isLoading, isDatasetLoaded }) {
   const [question, setQuestion] = useState('')
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!question.trim() || isLoading) return
+    if (!question.trim() || isLoading || !isDatasetLoaded) return
     onSubmit(question.trim())
   }
 
@@ -51,7 +51,9 @@ export default function QueryInput({ onSubmit, isLoading }) {
 
       {/* Main input form */}
       <form onSubmit={handleSubmit} className="relative">
-        <div className="relative glass-card p-1 group focus-within:border-accentPrimary/50 transition-colors duration-200">
+        <div className={`relative glass-card p-1 group transition-colors duration-200 ${
+          isDatasetLoaded ? 'focus-within:border-accentPrimary/50' : 'opacity-70 bg-darkCardHover/20'
+        }`}>
           <div className="flex items-start gap-3 p-3">
             <Search size={20} className="text-textSecondary mt-1 shrink-0" />
             <textarea
@@ -59,10 +61,13 @@ export default function QueryInput({ onSubmit, isLoading }) {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g. What were the top 5 best-selling product categories last month?"
+              placeholder={isDatasetLoaded 
+                ? "e.g. What were the top 5 best-selling product categories last month?" 
+                : "Please upload a CSV dataset or click 'Try sample dataset' in the sidebar to start asking questions..."
+              }
               rows={3}
               className="flex-1 bg-transparent text-textPrimary placeholder-textSecondary/50 resize-none outline-none text-sm md:text-base leading-relaxed font-sans"
-              disabled={isLoading}
+              disabled={isLoading || !isDatasetLoaded}
               aria-label="Natural language query input"
             />
           </div>
@@ -73,7 +78,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
             <button
               id="submit-query-btn"
               type="submit"
-              disabled={!question.trim() || isLoading}
+              disabled={!question.trim() || isLoading || !isDatasetLoaded}
               className="btn-neon flex items-center gap-2 px-5 py-2.5 text-sm font-semibold tracking-wide"
             >
               {isLoading ? (
@@ -101,7 +106,7 @@ export default function QueryInput({ onSubmit, isLoading }) {
               key={i}
               id={`example-question-${i}`}
               onClick={() => handleExample(q)}
-              disabled={isLoading}
+              disabled={isLoading || !isDatasetLoaded}
               className="text-xs bg-darkCard hover:bg-darkCardHover border border-borderSubtle hover:border-accentPrimary/40 text-textSecondary hover:text-accentPrimary rounded-full px-3.5 py-1.5 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed font-sans"
             >
               {q}

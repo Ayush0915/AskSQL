@@ -1,59 +1,79 @@
-from sqlalchemy import create_engine, text
+import threading
+import logging
+from pathlib import Path
+import duckdb
 from backend.app.config import config
+from backend.app.upload.session_manager import get_duckdb_path
+
+logger = logging.getLogger("asksql-db-connection")
+logging.basicConfig(level=logging.INFO)
 
 class QueryExecutor:
     def __init__(self):
-        # We connect using the read-only role URL.
-        # We also pass connect_args to set a database-side statement timeout.
-        # Options -c statement_timeout=5000 sets timeout to 5000 milliseconds (5s).
-        self.engine = create_engine(
-            config.DATABASE_URL,
-            connect_args={
-                "options": f"-c statement_timeout={config.QUERY_TIMEOUT_SECONDS * 1000}"
-            }
-        )
+        # DuckDB handles read/write queries via direct file connections.
+        # We enforce timeout using python timers and connection interrupts.
+        pass
 
-    def execute_query(self, sql: str) -> list[dict]:
+    def execute_query(self, sql: str, session_id: str) -> list[dict]:
         """
-        Executes a SQL SELECT query against the read-only PostgreSQL role.
+        Executes a SQL SELECT query against the session's DuckDB database file.
+        Enforces timeout dynamically using a background thread timer.
         Returns a list of dictionaries where keys are column names.
-        Throws an Exception if the query fails or times out.
+        Throws a TimeoutError if the query times out.
         """
-        with self.engine.connect() as conn:
-            result = conn.execute(text(sql))
+        db_path = get_duckdb_path(session_id)
+        
+        # Check if database file exists and contains tables (meaning it's not a fresh empty DB)
+        if not Path(db_path).exists():
+            raise ValueError("Database file not found for this session. Please upload a dataset.")
+
+        # Establish connection to DuckDB database file
+        # We connect in read_only mode to prevent any writes, ensuring read-only safety.
+        try:
+            conn = duckdb.connect(db_path, read_only=True)
+        except Exception as e:
+            logger.error(f"Error opening DuckDB connection at {db_path}: {e}")
+            raise ValueError("Failed to access database session. Ensure you have uploaded a valid dataset.")
+
+        # Thread interrupt control
+        interrupted = False
+        def interrupt():
+            nonlocal interrupted
+            interrupted = True
+            try:
+                conn.interrupt()
+            except Exception:
+                pass
+
+        # Set a timer to call conn.interrupt() after the configured query timeout
+        timeout_seconds = config.QUERY_TIMEOUT_SECONDS
+        timer = threading.Timer(timeout_seconds, interrupt)
+        timer.start()
+
+        try:
+            # Execute query
+            cursor = conn.execute(sql)
             
-            # If the query does not return rows (e.g. not a SELECT, though validator prevents this),
-            # return an empty list.
-            if not result.returns_rows:
+            # Fetch results
+            if cursor.description is None:
                 return []
                 
-            # Fetch all rows and convert to list of dicts
-            rows = result.fetchall()
-            keys = result.keys()
+            columns = [desc[0] for desc in cursor.description]
+            rows = cursor.fetchall()
             
+            # Convert rows to list of dicts
             output = []
             for row in rows:
-                output.append(dict(zip(keys, row)))
+                output.append(dict(zip(columns, row)))
                 
             return output
-
-# Quick self-test script
-if __name__ == "__main__":
-    import sys
-    from pathlib import Path
-    sys.path.append(str(Path(__file__).resolve().parent.parent.parent.parent))
-    
-    executor = QueryExecutor()
-    try:
-        # Simple test query
-        test_sql = "SELECT customer_id, customer_city FROM customers LIMIT 3"
-        print(f"Executing: '{test_sql}'")
-        results = executor.execute_query(test_sql)
-        print("Results:")
-        print(results)
-        
-        # Test statement timeout by executing a sleep
-        print("\nTesting 5-second timeout with pg_sleep(6)...")
-        executor.execute_query("SELECT pg_sleep(6)")
-    except Exception as e:
-        print(f"Expected failure/timeout error: {e}")
+            
+        except Exception as e:
+            if interrupted:
+                logger.warning(f"Query timed out after {timeout_seconds}s and was interrupted: {sql}")
+                raise TimeoutError(f"Query timed out after {timeout_seconds} seconds.")
+            logger.error(f"DuckDB execution error: {e}")
+            raise e
+        finally:
+            timer.cancel()
+            conn.close()

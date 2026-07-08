@@ -22,14 +22,17 @@ explainer = SQLExplainer()
 @router.post("/query", response_model=QueryResponse)
 async def process_nl_query(payload: QueryRequest):
     question = payload.question.strip()
+    session_id = payload.session_id.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="Session ID cannot be empty.")
         
-    logger.info(f"Received question: {question}")
+    logger.info(f"Received question: {question} for session: {session_id}")
     
     # Step 1: Retrieve schema context
     try:
-        schema_context = retriever.retrieve_relevant_schemas(question, top_k=4)
+        schema_context = retriever.retrieve_relevant_schemas(question, session_id=session_id, top_k=4)
         logger.info("Retrieved relevant schemas from ChromaDB.")
     except Exception as e:
         logger.error(f"Retriever error: {e}")
@@ -77,7 +80,7 @@ async def process_nl_query(payload: QueryRequest):
             )
 
         # Step 3: Validate SQL
-        is_valid, validation_error = validator.validate_sql(current_sql)
+        is_valid, validation_error = validator.validate_sql(current_sql, session_id=session_id)
         if not is_valid:
             logger.warning(f"SQL validation failed: {validation_error}")
             attempt += 1
@@ -89,7 +92,7 @@ async def process_nl_query(payload: QueryRequest):
         logger.info(f"Executing SQL: {sql_to_run}")
         
         try:
-            results = executor.execute_query(sql_to_run)
+            results = executor.execute_query(sql_to_run, session_id=session_id)
             logger.info(f"Query executed successfully. Retrieved {len(results)} rows.")
             
             # Step 5: Explain SQL

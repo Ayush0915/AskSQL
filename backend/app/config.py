@@ -34,6 +34,13 @@ class Config:
         else Path(_raw_chroma_dir)
     )
 
+    # Sessions directory for DuckDB session databases
+    _raw_sessions_dir = os.getenv("SESSIONS_DIR", "./backend/sessions")
+    SESSIONS_DIR = str(
+        (root_dir / _raw_sessions_dir).resolve() if not os.path.isabs(_raw_sessions_dir)
+        else Path(_raw_sessions_dir)
+    )
+
     
     # Port configuration
     BACKEND_PORT = int(os.getenv("BACKEND_PORT", 8000))

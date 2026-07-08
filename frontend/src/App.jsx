@@ -7,9 +7,20 @@ import QueryHistory from './components/QueryHistory'
 import SchemaBrowser from './components/SchemaBrowser'
 
 export default function App() {
+  // Generate or retrieve session ID from sessionStorage
+  const [sessionId] = useState(() => {
+    let id = sessionStorage.getItem('asksql_session_id')
+    if (!id) {
+      id = crypto.randomUUID()
+      sessionStorage.setItem('asksql_session_id', id)
+    }
+    return id
+  })
+
   const [schema, setSchema] = useState([])
+  const [isDatasetLoaded, setIsDatasetLoaded] = useState(false)
   const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem('asksql_history')
+    const saved = localStorage.getItem(`asksql_history_${sessionId}`)
     return saved ? JSON.parse(saved) : []
   })
   
@@ -34,8 +45,11 @@ export default function App() {
 
       setIsSchemaLoading(true)
       try {
-        const data = await fetchSchema()
+        const data = await fetchSchema(sessionId)
         setSchema(data.tables || [])
+        if (data.tables && data.tables.length > 0) {
+          setIsDatasetLoaded(true)
+        }
       } catch (err) {
         console.error('Failed to load schema browser:', err)
       } finally {
@@ -43,12 +57,12 @@ export default function App() {
       }
     }
     init()
-  }, [])
+  }, [sessionId])
 
-  // Persist history to localStorage
+  // Persist history to localStorage scoped by session ID
   useEffect(() => {
-    localStorage.setItem('asksql_history', JSON.stringify(history))
-  }, [history])
+    localStorage.setItem(`asksql_history_${sessionId}`, JSON.stringify(history))
+  }, [history, sessionId])
 
   const handleQuerySubmit = async (question) => {
     setIsLoading(true)
@@ -57,7 +71,7 @@ export default function App() {
     setCurrentResponse(null)
 
     try {
-      const res = await askQuestion(question)
+      const res = await askQuestion(question, sessionId)
       setCurrentResponse(res)
 
       if (res.success) {
@@ -104,6 +118,15 @@ export default function App() {
     setHistory([])
   }
 
+  const handleDatasetCleared = () => {
+    setSchema([])
+    setIsDatasetLoaded(false)
+    setCurrentResponse(null)
+    setErrorMsg(null)
+    setHistory([])
+    localStorage.removeItem(`asksql_history_${sessionId}`)
+  }
+
   return (
     <div className="min-h-screen bg-darkBg text-textPrimary flex flex-col font-sans">
       {/* Top Navbar */}
@@ -139,18 +162,34 @@ export default function App() {
         
         {/* Left Sidebars - Schema Browser & History */}
         <div className="space-y-6 lg:col-span-1">
-          <SchemaBrowser schema={schema} isLoading={isSchemaLoading} />
-          <QueryHistory
-            history={history}
-            onRerun={handleRerunHistory}
-            onClear={handleClearHistory}
+          <SchemaBrowser 
+            schema={schema} 
+            isLoading={isSchemaLoading} 
+            sessionId={sessionId}
+            isDatasetLoaded={isDatasetLoaded}
+            onDatasetLoaded={(tables) => {
+              setSchema(tables)
+              setIsDatasetLoaded(true)
+            }}
+            onDatasetCleared={handleDatasetCleared}
           />
+          {isDatasetLoaded && (
+            <QueryHistory
+              history={history}
+              onRerun={handleRerunHistory}
+              onClear={handleClearHistory}
+            />
+          )}
         </div>
 
         {/* Center Panel - Input, Output, Results */}
         <div className="lg:col-span-3 space-y-8">
           <div className="glass-card p-6">
-            <QueryInput onSubmit={handleQuerySubmit} isLoading={isLoading} />
+            <QueryInput 
+              onSubmit={handleQuerySubmit} 
+              isLoading={isLoading} 
+              isDatasetLoaded={isDatasetLoaded} 
+            />
           </div>
 
           {/* Render Error if any */}
@@ -196,7 +235,7 @@ export default function App() {
           <div className="flex gap-4">
             <span>Solo Capstone Project</span>
             <span>·</span>
-            <span>React + FastAPI + Llama 3</span>
+            <span>React + DuckDB + Llama 3</span>
           </div>
         </div>
       </footer>

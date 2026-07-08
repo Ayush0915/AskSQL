@@ -1,8 +1,24 @@
 import os
-from fastapi import FastAPI
+import asyncio
+import logging
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.routers import query
-from backend.app.db.schema_metadata import schema_metadata
+from backend.app.upload.session_manager import (
+    session_schemas,
+    clear_session,
+    cleanup_inactive_sessions,
+    startup_cleanup
+)
+from backend.app.upload.csv_parser import parse_and_load_csv
+from backend.app.upload.schema_generator import (
+    generate_schema_descriptions_llm,
+    embed_session_table_schema
+)
+from pathlib import Path
+
+logger = logging.getLogger("asksql-main")
+logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     title="AskSQL API",
@@ -22,24 +38,181 @@ app.add_middleware(
 # Include query router
 app.include_router(query.router, prefix="/api")
 
+# Repeated background cleanup loop
+async def session_cleanup_loop():
+    while True:
+        try:
+            cleanup_inactive_sessions(max_age_seconds=3600)
+        except Exception as e:
+            logger.error(f"Error in inactive session cleanup loop: {e}")
+        await asyncio.sleep(600)  # Sleep for 10 minutes
+
+@app.on_event("startup")
+async def startup_event():
+    # 1. Clean leftover session files
+    startup_cleanup()
+    # 2. Start session cleanup daemon task
+    asyncio.create_task(session_cleanup_loop())
+
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy"}
 
 @app.get("/api/schema")
-async def get_schema_browser():
+async def get_schema_browser(session_id: str):
     """
-    Returns the table schemas and columns to populate the schema browser sidebar in the frontend.
+    Returns the table schemas and columns to populate the schema browser sidebar for this session.
     """
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required.")
+        
     formatted_schema = []
-    for table_name, table_info in schema_metadata.tables.items():
+    schemas = session_schemas.get(session_id, {})
+    
+    for table_name, table_info in schemas.items():
         formatted_schema.append({
             "table_name": table_name,
             "description": table_info["description"],
-            "columns": list(table_info["columns"])
+            "columns": list(table_info["columns"].keys())
         })
+        
     return {"tables": formatted_schema}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("backend.app.main:app", host="0.0.0.0", port=8000, reload=True)
+@app.post("/api/upload")
+async def upload_dataset(session_id: str = Form(...), files: list[UploadFile] = File(...)):
+    """
+    Handles CSV uploads, sanitizes table/column names, infers column data types,
+    loads the data into the session's DuckDB file, generates schema descriptions,
+    and indexes them in the session's ChromaDB collection.
+    """
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required.")
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded.")
+
+    processed_tables = []
+    total_size = 0
+
+    # 1. Read files and check overall session size limit (200MB)
+    file_payloads = []
+    for file in files:
+        if not file.filename.lower().endswith(".csv"):
+            raise HTTPException(status_code=400, detail=f"Unsupported file format for '{file.filename}'. Only CSV files are accepted.")
+        
+        content = await file.read()
+        total_size += len(content)
+        if total_size > 200 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="Total uploaded dataset size exceeds session limit of 200MB.")
+        file_payloads.append((file.filename, content))
+
+    # 2. Parse, load, and generate schemas
+    for filename, content in file_payloads:
+        try:
+            # Step 2a: Parse CSV, infer types, and load into DuckDB
+            load_data = parse_and_load_csv(session_id, filename, content)
+            
+            table_name = load_data["table_name"]
+            columns_and_types = load_data["types"]
+            preview = load_data["preview"]
+            
+            # Step 2b: Generate table/column descriptions using Llama 3
+            desc_data = generate_schema_descriptions_llm(
+                session_id=session_id,
+                table_name=table_name,
+                columns_and_types=columns_and_types,
+                sample_rows=preview
+            )
+            
+            # Step 2c: Index descriptions in session-specific Chroma collection
+            embed_session_table_schema(
+                session_id=session_id,
+                table_name=table_name,
+                table_desc=desc_data["table_description"],
+                columns_desc=desc_data["columns"]
+            )
+            
+            processed_tables.append({
+                "table_name": table_name,
+                "row_count": load_data["row_count"],
+                "columns": load_data["columns"]
+            })
+        except Exception as e:
+            logger.error(f"Error processing file '{filename}': {e}")
+            raise HTTPException(status_code=500, detail=f"Error processing file '{filename}': {str(e)}")
+
+    return {"status": "success", "tables": processed_tables}
+
+@app.post("/api/clear")
+async def clear_dataset(payload: dict):
+    """
+    Clears the session dataset (deletes DuckDB file, wipes ChromaDB, and drops memory cache).
+    """
+    session_id = payload.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required.")
+        
+    clear_session(session_id)
+    return {"status": "success"}
+
+@app.post("/api/sample")
+async def load_sample_dataset(payload: dict):
+    """
+    Mounts the pre-packaged Olist e-commerce sample CSV dataset into the user's session.
+    """
+    session_id = payload.get("session_id")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required.")
+
+    # Locate pre-packaged datasets directory
+    sample_dir = Path(__file__).resolve().parent / "data" / "sample_datasets"
+    if not sample_dir.exists():
+        raise HTTPException(status_code=500, detail="Pre-packaged sample dataset files not found on server.")
+
+    processed_tables = []
+    
+    # List of expected Olist tables
+    sample_files = list(sample_dir.glob("*.csv"))
+    if not sample_files:
+        raise HTTPException(status_code=500, detail="No CSV files found in the sample datasets folder.")
+
+    logger.info(f"Loading {len(sample_files)} sample CSV files for session {session_id}...")
+
+    # Load all sample CSVs
+    for file_path in sample_files:
+        filename = file_path.name
+        try:
+            with open(file_path, "rb") as f:
+                content = f.read()
+                
+            # Parse CSV and load into DuckDB
+            load_data = parse_and_load_csv(session_id, filename, content)
+            table_name = load_data["table_name"]
+            columns_and_types = load_data["types"]
+            preview = load_data["preview"]
+            
+            # Generate descriptions using LLM (reuses the prompt logic for consistency)
+            desc_data = generate_schema_descriptions_llm(
+                session_id=session_id,
+                table_name=table_name,
+                columns_and_types=columns_and_types,
+                sample_rows=preview
+            )
+            
+            # Index descriptions in session Chroma collection
+            embed_session_table_schema(
+                session_id=session_id,
+                table_name=table_name,
+                table_desc=desc_data["table_description"],
+                columns_desc=desc_data["columns"]
+            )
+            
+            processed_tables.append({
+                "table_name": table_name,
+                "row_count": load_data["row_count"],
+                "columns": load_data["columns"]
+            })
+        except Exception as e:
+            logger.error(f"Error loading sample file '{filename}': {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to load sample file '{filename}': {str(e)}")
+
+    return {"status": "success", "tables": processed_tables}

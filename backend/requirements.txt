@@ -14,3 +14,4 @@ sql-metadata>=2.0.0
 groq>=0.5.0
 pandas>=2.0.0
 httpx>=0.25.0
+duckdb>=0.10.0

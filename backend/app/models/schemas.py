@@ -3,6 +3,7 @@ from typing import Optional, List, Dict, Any
 
 class QueryRequest(BaseModel):
     question: str
+    session_id: str
 
 class QueryResponse(BaseModel):
     success: bool
