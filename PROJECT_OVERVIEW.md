@@ -88,6 +88,28 @@ Initially, the application exceeded **512MB RAM**, causing Out-Of-Memory (OOM) c
 
 ---
 
+## 📊 Benchmark Evaluation Results
+
+The system is evaluated against a 20-question benchmark suite spanning different difficulty levels (`simple`, `medium`, `complex`). The metrics below were captured by running the automated evaluation script (`backend/eval/run_eval.py`):
+
+### 1. Execution Accuracy by Difficulty
+| Difficulty | Total Questions | Passed | Execution Accuracy |
+| :--- | :---: | :---: | :---: |
+| **Simple** | 10 | 8 | 80.00% |
+| **Medium** | 7 | 3 | 42.86% |
+| **Complex** | 3 | 1 | 33.33% |
+| **Overall** | **20** | **12** | **60.00%** |
+
+### 2. Average Latency Breakdown
+| Pipeline Stage | Avg Latency (ms) | Description |
+| :--- | :---: | :--- |
+| **Schema Retrieval** | 1.16 ms | Zero-dependency token-matching algorithm |
+| **SQL Generation** | 990.41 ms | Prompt & SQL synthesis via Llama 3.3 (Groq API) |
+| **Query Execution** | 276.74 ms | AST validation and local DB query execution |
+| **Total Pipeline** | **1268.31 ms** | **End-to-end natural language to query result** |
+
+---
+
 ## 📂 Codebase Directory Structure
 
 ```

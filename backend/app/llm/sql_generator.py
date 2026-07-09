@@ -58,6 +58,8 @@ class SQLGenerator:
         
         user_message = f"User question: {question}"
         
+        print(f"DEBUG: retrieved_schema_chunks value:\n{schema_context}\n--- END DEBUG ---")
+        
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[

@@ -57,13 +57,34 @@ class SQLValidator:
                 return True, None
 
             # Get session schema
-            if not session_id:
-                if session_schemas:
-                    session_id = list(session_schemas.keys())[0]
-                else:
-                    session_id = "default"
+            schemas = {}
+            if session_id:
+                schemas = session_schemas.get(session_id, {})
 
-            schemas = session_schemas.get(session_id, {})
+            if not schemas:
+                if session_schemas:
+                    fallback_session_id = list(session_schemas.keys())[0]
+                    schemas = session_schemas.get(fallback_session_id, {})
+
+            if not schemas:
+                from pathlib import Path
+                import json
+                backend_dir = Path(__file__).resolve().parent.parent.parent
+                schema_path = backend_dir / "data" / "schema_descriptions.json"
+                if schema_path.exists():
+                    try:
+                        with open(schema_path, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                        schemas = {}
+                        for table_data in data.get("tables", []):
+                            table_name = table_data["table_name"]
+                            schemas[table_name] = {
+                                "description": table_data["description"],
+                                "columns": table_data["columns"]
+                            }
+                    except Exception:
+                        pass
+
             if not schemas:
                 return False, "No dataset loaded for this session. Please upload a dataset first."
 

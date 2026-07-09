@@ -9,6 +9,7 @@ if project_root not in sys.path:
 
 import json
 import logging
+import time
 from sqlalchemy import create_engine, text
 from backend.app.config import config
 from backend.app.rag.retriever import SchemaRetriever
@@ -85,6 +86,14 @@ class EvalRunner:
         
         difficulty_stats = {}
         
+        total_ret_time = 0.0
+        total_gen_time = 0.0
+        total_exec_time = 0.0
+        
+        ret_count = 0
+        gen_count = 0
+        exec_count = 0
+        
         for q in questions:
             q_id = q["id"]
             question = q["question"]
@@ -97,28 +106,78 @@ class EvalRunner:
             
             print(f"[{q_id}/{total_questions}] [{diff.upper()}] Q: {question}")
             
+            t_start = time.time()
+            t_ret = 0.0
+            t_gen = 0.0
+            t_exec = 0.0
+            
             # Step 1: Retrieve schema context
             try:
+                t_ret_start = time.time()
                 schema_context = self.retriever.retrieve_relevant_schemas(question, top_k=4)
+                t_ret = (time.time() - t_ret_start) * 1000
+                total_ret_time += t_ret
+                ret_count += 1
             except Exception as e:
                 print(f"  [ERROR] Retrieval Error: {e}")
-                results_log.append({"id": q_id, "status": "FAIL", "reason": f"Retrieval Error: {e}"})
+                t_ret = (time.time() - t_ret_start) * 1000
+                results_log.append({
+                    "id": q_id, 
+                    "status": "FAIL", 
+                    "reason": f"Retrieval Error: {e}",
+                    "latencies_ms": {
+                        "retrieval": t_ret,
+                        "generation": 0.0,
+                        "execution": 0.0,
+                        "total": (time.time() - t_start) * 1000
+                    }
+                })
                 continue
                 
             # Step 2: Generate SQL
             try:
+                t_gen_start = time.time()
                 gen_sql = self.generator.generate_sql(question, schema_context)
+                t_gen = (time.time() - t_gen_start) * 1000
+                total_gen_time += t_gen
+                gen_count += 1
             except Exception as e:
                 print(f"  [ERROR] Generation Error: {e}")
-                results_log.append({"id": q_id, "status": "FAIL", "reason": f"Generation Error: {e}"})
+                t_gen = (time.time() - t_gen_start) * 1000
+                results_log.append({
+                    "id": q_id, 
+                    "status": "FAIL", 
+                    "reason": f"Generation Error: {e}",
+                    "latencies_ms": {
+                        "retrieval": t_ret,
+                        "generation": t_gen,
+                        "execution": 0.0,
+                        "total": (time.time() - t_start) * 1000
+                    }
+                })
                 continue
                 
             # Step 3: Validate SQL
+            t_exec_start = time.time()
             is_valid, reason = self.validator.validate_sql(gen_sql)
             if not is_valid:
+                t_exec = (time.time() - t_exec_start) * 1000
+                total_exec_time += t_exec
+                exec_count += 1
                 print(f"  [ERROR] Validation Failed: {reason}")
                 print(f"     Generated SQL: {gen_sql}")
-                results_log.append({"id": q_id, "status": "FAIL", "reason": f"Validation Error: {reason}", "generated_sql": gen_sql})
+                results_log.append({
+                    "id": q_id, 
+                    "status": "FAIL", 
+                    "reason": f"Validation Error: {reason}", 
+                    "generated_sql": gen_sql,
+                    "latencies_ms": {
+                        "retrieval": t_ret,
+                        "generation": t_gen,
+                        "execution": t_exec,
+                        "total": (time.time() - t_start) * 1000
+                    }
+                })
                 continue
                 
             # Step 4: Run queries and compare results
@@ -131,11 +190,27 @@ class EvalRunner:
                 res_gt = self.run_query(gt_sql_to_run)
                 
                 is_correct = self.compare_results(res_gen, res_gt)
+                
+                t_exec = (time.time() - t_exec_start) * 1000
+                total_exec_time += t_exec
+                exec_count += 1
+                t_query_total = (time.time() - t_start) * 1000
+                
                 if is_correct:
                     print("  [PASS]")
                     passed += 1
                     difficulty_stats[diff]["passed"] += 1
-                    results_log.append({"id": q_id, "status": "PASS", "generated_sql": gen_sql})
+                    results_log.append({
+                        "id": q_id, 
+                        "status": "PASS", 
+                        "generated_sql": gen_sql,
+                        "latencies_ms": {
+                            "retrieval": t_ret,
+                            "generation": t_gen,
+                            "execution": t_exec,
+                            "total": t_query_total
+                        }
+                    })
                 else:
                     print("  [FAIL] (Result set mismatch)")
                     print(f"     Ground Truth SQL: {gt_sql_to_run}")
@@ -149,20 +224,50 @@ class EvalRunner:
                         "status": "FAIL", 
                         "reason": "Result mismatch", 
                         "generated_sql": gen_sql,
-                        "ground_truth_sql": gt_sql
+                        "ground_truth_sql": gt_sql,
+                        "latencies_ms": {
+                            "retrieval": t_ret,
+                            "generation": t_gen,
+                            "execution": t_exec,
+                            "total": t_query_total
+                        }
                     })
             except Exception as e:
+                t_exec = (time.time() - t_exec_start) * 1000
+                total_exec_time += t_exec
+                exec_count += 1
+                t_query_total = (time.time() - t_start) * 1000
                 print(f"  [ERROR] Execution Error: {e}")
                 print(f"     Generated SQL: {gen_sql}")
-                results_log.append({"id": q_id, "status": "FAIL", "reason": f"Execution Error: {e}", "generated_sql": gen_sql})
-
+                results_log.append({
+                    "id": q_id, 
+                    "status": "FAIL", 
+                    "reason": f"Execution Error: {e}", 
+                    "generated_sql": gen_sql,
+                    "latencies_ms": {
+                        "retrieval": t_ret,
+                        "generation": t_gen,
+                        "execution": t_exec,
+                        "total": t_query_total
+                    }
+                })
                 
             print("-" * 50)
             
         accuracy = (passed / total_questions) * 100
+        avg_ret = (total_ret_time / ret_count) if ret_count > 0 else 0.0
+        avg_gen = (total_gen_time / gen_count) if gen_count > 0 else 0.0
+        avg_exec = (total_exec_time / exec_count) if exec_count > 0 else 0.0
+        avg_total = avg_ret + avg_gen + avg_exec
+        
         print("\n" + "="*80)
         print(f"EVALUATION SUMMARY")
         print(f"Overall Execution Accuracy: {accuracy:.2f}% ({passed}/{total_questions})")
+        print(f"Average Latency Breakdown:")
+        print(f"  - Schema Retrieval: {avg_ret:.2f} ms")
+        print(f"  - SQL Generation:   {avg_gen:.2f} ms")
+        print(f"  - Query Execution:  {avg_exec:.2f} ms")
+        print(f"  - Total Latency:    {avg_total:.2f} ms")
         print("="*80)
         
         for diff, stats in difficulty_stats.items():
@@ -177,6 +282,12 @@ class EvalRunner:
                 "accuracy": accuracy,
                 "passed": passed,
                 "total": total_questions,
+                "average_latency_ms": {
+                    "retrieval": avg_ret,
+                    "generation": avg_gen,
+                    "execution": avg_exec,
+                    "total": avg_total
+                },
                 "detailed_results": results_log
             }, f, indent=2)
 

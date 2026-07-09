@@ -1,9 +1,30 @@
 import logging
 import re
+import json
+from pathlib import Path
 from backend.app.upload.session_manager import session_schemas
 
 logger = logging.getLogger("asksql-retriever")
 logging.basicConfig(level=logging.INFO)
+
+def load_default_schema() -> dict:
+    try:
+        backend_dir = Path(__file__).resolve().parent.parent.parent
+        schema_path = backend_dir / "data" / "schema_descriptions.json"
+        if schema_path.exists():
+            with open(schema_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            schemas = {}
+            for table_data in data.get("tables", []):
+                table_name = table_data["table_name"]
+                schemas[table_name] = {
+                    "description": table_data["description"],
+                    "columns": table_data["columns"]
+                }
+            return schemas
+    except Exception as e:
+        logger.error(f"Error loading default schema: {e}")
+    return {}
 
 class SchemaRetriever:
     def __init__(self):
@@ -14,17 +35,22 @@ class SchemaRetriever:
         Retrieves top_k relevant tables for a user's question within the session's schema metadata
         using a lightweight token-matching relevance score, and returns them formatted as a single context string.
         """
-        # If no session_id is provided, look for the first available session or return empty.
-        # This handles eval / run_eval.py script which might not pass a session_id.
-        if not session_id:
+        schemas = {}
+        if session_id:
+            schemas = session_schemas.get(session_id, {})
+
+        if not schemas:
             if session_schemas:
                 # Use the first active session key
-                session_id = list(session_schemas.keys())[0]
-                logger.info(f"No session_id provided for retrieval. Falling back to active session: {session_id}")
-            else:
-                return "No schema context retrieved. Please upload a dataset or load the sample data first."
+                fallback_session_id = list(session_schemas.keys())[0]
+                schemas = session_schemas.get(fallback_session_id, {})
+                logger.info(f"No schemas for session {session_id}. Falling back to active session: {fallback_session_id}")
+            
+        if not schemas:
+            schemas = load_default_schema()
+            if schemas:
+                logger.info("Falling back to default/evaluation schema descriptions from schema_descriptions.json")
 
-        schemas = session_schemas.get(session_id, {})
         if not schemas:
             return "No schema context retrieved. Please upload a dataset or load the sample data first."
 
