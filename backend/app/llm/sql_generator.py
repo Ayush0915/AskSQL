@@ -1,6 +1,7 @@
 import re
 from groq import Groq
 from backend.app.config import config
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 class SQLGenerator:
     def __init__(self):
@@ -40,6 +41,11 @@ class SQLGenerator:
         
         return cleaned
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True
+    )
     def generate_sql(self, question: str, schema_context: str) -> str:
         """
         Generates SQL based on the user question and the retrieved schema.
@@ -58,8 +64,6 @@ class SQLGenerator:
         
         user_message = f"User question: {question}"
         
-        print(f"DEBUG: retrieved_schema_chunks value:\n{schema_context}\n--- END DEBUG ---")
-        
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -72,6 +76,11 @@ class SQLGenerator:
         raw_sql = response.choices[0].message.content
         return self.clean_llm_sql(raw_sql)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True
+    )
     def generate_retry_sql(self, question: str, schema_context: str, failed_query: str, error_message: str) -> str:
         """
         Generates a corrected SQL query after an execution failure.

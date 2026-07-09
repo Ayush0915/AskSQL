@@ -1,7 +1,8 @@
 import os
 import asyncio
 import logging
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+import uuid
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.routers import query
 from backend.app.upload.session_manager import (
@@ -9,15 +10,19 @@ from backend.app.upload.session_manager import (
     session_questions,
     clear_session,
     cleanup_inactive_sessions,
-    startup_cleanup
+    is_valid_uuid
 )
 from backend.app.upload.csv_parser import parse_and_load_csv
 from backend.app.upload.schema_generator import (
     generate_schema_descriptions_llm,
     embed_session_table_schema,
-    generate_example_questions_llm
+    generate_example_questions_llm,
+    describe_table_helper
 )
 from pathlib import Path
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from backend.app.limiter import limiter
 
 logger = logging.getLogger("asksql-main")
 logging.basicConfig(level=logging.INFO)
@@ -27,11 +32,17 @@ app = FastAPI(
     description="Natural Language to SQL pipeline with schema-aware RAG, safety validation, and plain English explanation.",
     version="1.0.0"
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add CORS middleware to allow requests from the React frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify frontend URL
+    allow_origins=[
+        "https://askmysql.netlify.app",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,8 +62,8 @@ async def session_cleanup_loop():
 
 @app.on_event("startup")
 async def startup_event():
-    # 1. Clean leftover session files
-    startup_cleanup()
+    # 1. Clean inactive sessions on startup
+    cleanup_inactive_sessions(max_age_seconds=3600)
     # 2. Start session cleanup daemon task
     asyncio.create_task(session_cleanup_loop())
 
@@ -89,17 +100,17 @@ async def get_schema_browser(session_id: str):
     }
 
 @app.post("/api/upload")
-async def upload_dataset(session_id: str = Form(...), files: list[UploadFile] = File(...)):
+@limiter.limit("10/minute")
+async def upload_dataset(request: Request, files: list[UploadFile] = File(...)):
     """
     Handles CSV uploads, sanitizes table/column names, infers column data types,
     loads the data into the session's DuckDB file, generates schema descriptions,
     and indexes them in the session's ChromaDB collection.
     """
-    if not session_id:
-        raise HTTPException(status_code=400, detail="session_id is required.")
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")
 
+    session_id = str(uuid.uuid4())
     processed_tables = []
     total_size = 0
 
@@ -137,30 +148,17 @@ async def upload_dataset(session_id: str = Form(...), files: list[UploadFile] = 
             logger.error(f"Error processing file '{filename}': {e}")
             raise HTTPException(status_code=500, detail=f"Error processing file '{filename}': {str(e)}")
 
-    # Step 2b: Generate table/column descriptions using Llama 3 concurrently
-    async def describe_table(table):
-        try:
-            desc_data = await generate_schema_descriptions_llm(
-                session_id=session_id,
-                table_name=table["table_name"],
-                columns_and_types=table["columns_and_types"],
-                sample_rows=table["preview"]
-            )
-            embed_session_table_schema(
-                session_id=session_id,
-                table_name=table["table_name"],
-                table_desc=desc_data["table_description"],
-                columns_desc=desc_data["columns"]
-            )
-        except Exception as e:
-            logger.error(f"Error generating descriptions for '{table['table_name']}': {e}")
-
     if tables_to_describe:
-        await asyncio.gather(*(describe_table(t) for t in tables_to_describe))
+        await asyncio.gather(*(describe_table_helper(session_id, t) for t in tables_to_describe))
 
     # Generate custom sample business questions for this newly uploaded dataset
     questions = await generate_example_questions_llm(session_id)
-    return {"status": "success", "tables": processed_tables, "example_questions": questions}
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "tables": processed_tables,
+        "example_questions": questions
+    }
 
 @app.post("/api/clear")
 async def clear_dataset(payload: dict):
@@ -170,18 +168,26 @@ async def clear_dataset(payload: dict):
     session_id = payload.get("session_id")
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id is required.")
+    if not is_valid_uuid(session_id):
+        raise HTTPException(status_code=400, detail="Invalid Session ID format. Must be a valid UUID.")
         
     clear_session(session_id)
     return {"status": "success"}
 
 @app.post("/api/sample")
-async def load_sample_dataset(payload: dict):
+@limiter.limit("10/minute")
+async def load_sample_dataset(request: Request, payload: dict = None):
     """
     Mounts the pre-packaged Olist e-commerce sample CSV dataset into the user's session.
     """
-    session_id = payload.get("session_id")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="session_id is required.")
+    from backend.app.upload.dataset_downloader import ensure_sample_datasets
+    
+    try:
+        ensure_sample_datasets()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to prepare sample dataset files: {str(e)}")
+
+    session_id = str(uuid.uuid4())
 
     # Locate pre-packaged datasets directory
     sample_dir = Path(__file__).resolve().parent / "data" / "sample_datasets"
@@ -220,27 +226,14 @@ async def load_sample_dataset(payload: dict):
             logger.error(f"Error loading sample file '{filename}': {e}")
             raise HTTPException(status_code=500, detail=f"Failed to load sample file '{filename}': {str(e)}")
 
-    # Generate table/column descriptions using Llama 3 concurrently
-    async def describe_table(table):
-        try:
-            desc_data = await generate_schema_descriptions_llm(
-                session_id=session_id,
-                table_name=table["table_name"],
-                columns_and_types=table["columns_and_types"],
-                sample_rows=table["preview"]
-            )
-            embed_session_table_schema(
-                session_id=session_id,
-                table_name=table["table_name"],
-                table_desc=desc_data["table_description"],
-                columns_desc=desc_data["columns"]
-            )
-        except Exception as e:
-            logger.error(f"Error generating sample descriptions for '{table['table_name']}': {e}")
-
     if tables_to_describe:
-        await asyncio.gather(*(describe_table(t) for t in tables_to_describe))
+        await asyncio.gather(*(describe_table_helper(session_id, t) for t in tables_to_describe))
 
     # Generate custom sample business questions for this sample dataset
     questions = await generate_example_questions_llm(session_id)
-    return {"status": "success", "tables": processed_tables, "example_questions": questions}
+    return {
+        "status": "success",
+        "session_id": session_id,
+        "tables": processed_tables,
+        "example_questions": questions
+    }

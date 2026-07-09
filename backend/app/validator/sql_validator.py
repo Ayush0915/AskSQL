@@ -1,7 +1,7 @@
 import re
 import sqlparse
 from sql_metadata import Parser
-from backend.app.upload.session_manager import session_schemas
+from backend.app.upload.session_manager import session_schemas, is_valid_uuid
 
 class SQLValidator:
     def __init__(self):
@@ -27,9 +27,9 @@ class SQLValidator:
         if "--" in cleaned_sql or "/*" in cleaned_sql or "*/" in cleaned_sql:
             return False, "Query contains SQL comment markers (--, /* */) which are forbidden."
 
-        # Rule 2: Case-insensitive check to ensure the query starts with SELECT
-        if not cleaned_sql.upper().startswith("SELECT"):
-            return False, "Query must be a read-only SELECT statement."
+        # Rule 2: Case-insensitive check to ensure the query starts with SELECT or WITH
+        if not (cleaned_sql.upper().startswith("SELECT") or cleaned_sql.upper().startswith("WITH")):
+            return False, "Query must be a read-only SELECT or WITH statement."
 
         # Rule 3: Check for stacked statements / multiple statements
         if ";" in cleaned_sql:
@@ -58,43 +58,27 @@ class SQLValidator:
 
             # Get session schema
             schemas = {}
-            if session_id:
+            if session_id and is_valid_uuid(session_id):
                 schemas = session_schemas.get(session_id, {})
-
-            if not schemas:
-                if session_schemas:
-                    fallback_session_id = list(session_schemas.keys())[0]
-                    schemas = session_schemas.get(fallback_session_id, {})
-
-            if not schemas:
-                from pathlib import Path
-                import json
-                backend_dir = Path(__file__).resolve().parent.parent.parent
-                schema_path = backend_dir / "data" / "schema_descriptions.json"
-                if schema_path.exists():
-                    try:
-                        with open(schema_path, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                        schemas = {}
-                        for table_data in data.get("tables", []):
-                            table_name = table_data["table_name"]
-                            schemas[table_name] = {
-                                "description": table_data["description"],
-                                "columns": table_data["columns"]
-                            }
-                    except Exception:
-                        pass
 
             if not schemas:
                 return False, "No dataset loaded for this session. Please upload a dataset first."
 
             valid_tables = set(schemas.keys())
-            
-            # Verify tables exist in metadata
+
             for table in referenced_tables:
                 # Strip optional quotes if present
                 clean_table = table.strip('"').strip('`').strip("'")
-                if clean_table not in valid_tables:
+                
+                # Check if it's a CTE or CTE alias
+                is_cte = clean_table in parser.with_names
+                if not is_cte:
+                    for cte_name in parser.with_names:
+                        if re.search(rf"\b{cte_name}\b\s+(?:AS\s+)?\b{clean_table}\b", cleaned_sql, re.IGNORECASE):
+                            is_cte = True
+                            break
+                            
+                if not is_cte and clean_table not in valid_tables:
                     return False, f"Table '{clean_table}' is not present in the database schema."
 
             # Verify columns exist in metadata
@@ -112,11 +96,32 @@ class SQLValidator:
                     table_prefix = parts[0].strip('"').strip('`').strip("'")
                     col_name = parts[1].strip('"').strip('`').strip("'")
                     
-                    if table_prefix in referenced_tables:
-                        # Validate col_name on table_prefix
-                        table_cols = schemas.get(table_prefix, {}).get("columns", {})
+                    # 1. Resolve table alias
+                    actual_table = table_prefix
+                    if table_prefix in parser.tables_aliases:
+                        actual_table = parser.tables_aliases[table_prefix]
+                    else:
+                        # Regex fallback for table alias resolution
+                        for tbl in valid_tables:
+                            if re.search(rf"\b{tbl}\b\s+(?:AS\s+)?\b{actual_table}\b", cleaned_sql, re.IGNORECASE):
+                                actual_table = tbl
+                                break
+
+                    # 2. Check if it's a CTE/WITH query name or CTE alias
+                    is_cte = actual_table in parser.with_names
+                    if not is_cte:
+                        for cte_name in parser.with_names:
+                            if re.search(rf"\b{cte_name}\b\s+(?:AS\s+)?\b{actual_table}\b", cleaned_sql, re.IGNORECASE):
+                                is_cte = True
+                                break
+                    if is_cte:
+                        continue
+
+                    # 3. Validate
+                    if actual_table in valid_tables:
+                        table_cols = schemas.get(actual_table, {}).get("columns", {})
                         if col_name not in table_cols:
-                            return False, f"Column '{col_name}' does not exist on table '{table_prefix}'."
+                            return False, f"Column '{col_name}' does not exist on table '{actual_table}'."
                     else:
                         return False, f"Table prefix '{table_prefix}' in column '{col}' is not referenced in the query."
                 else:
@@ -124,10 +129,37 @@ class SQLValidator:
                     found = False
                     for table in referenced_tables:
                         clean_table = table.strip('"').strip('`').strip("'")
-                        table_cols = schemas.get(clean_table, {}).get("columns", {})
+                        
+                        # Resolve table alias if needed
+                        actual_table = clean_table
+                        if clean_table in parser.tables_aliases:
+                            actual_table = parser.tables_aliases[clean_table]
+                        else:
+                            for tbl in valid_tables:
+                                if re.search(rf"\b{tbl}\b\s+(?:AS\s+)?\b{actual_table}\b", cleaned_sql, re.IGNORECASE):
+                                    actual_table = tbl
+                                    break
+
+                        # Check if it's a CTE
+                        is_cte = actual_table in parser.with_names
+                        if not is_cte:
+                            for cte_name in parser.with_names:
+                                if re.search(rf"\b{cte_name}\b\s+(?:AS\s+)?\b{actual_table}\b", cleaned_sql, re.IGNORECASE):
+                                    is_cte = True
+                                    break
+                        if is_cte:
+                            found = True
+                            break
+
+                        table_cols = schemas.get(actual_table, {}).get("columns", {})
                         if clean_col in table_cols:
                             found = True
                             break
+                            
+                    if not found and parser.with_names:
+                        # Assume it could be defined in a CTE
+                        found = True
+                        
                     if not found:
                         return False, f"Column '{clean_col}' does not exist in any of the referenced tables: {referenced_tables}."
 

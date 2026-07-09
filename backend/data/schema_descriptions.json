@@ -1,0 +1,99 @@
+{
+  "tables": [
+    {
+      "table_name": "customers",
+      "description": "Information about customers and their demographics. Use this to find customer location details or trace unique customers.",
+      "columns": {
+        "customer_id": "Unique key for each customer order. Every order has a unique customer_id (joins with orders.customer_id).",
+        "customer_unique_id": "Unique identifier for a customer. Use this to count actual repeat customers or group purchases by customer.",
+        "customer_zip_code_prefix": "First 5 digits of customer zip code.",
+        "customer_city": "City name where the customer is located (e.g., 'sao paulo', 'rio de janeiro').",
+        "customer_state": "State abbreviation where the customer is located (e.g., 'SP', 'RJ')."
+      }
+    },
+    {
+      "table_name": "orders",
+      "description": "Core orders table containing purchase status and timeline tracking.",
+      "columns": {
+        "order_id": "Unique identifier of the order (joins with order_items.order_id, order_payments.order_id, order_reviews.order_id).",
+        "customer_id": "Key to the customer details for this specific order (joins with customers.customer_id).",
+        "order_status": "Status of the order. Possible values: 'delivered', 'shipped', 'invoiced', 'processing', 'approved', 'canceled', 'unavailable', 'created'.",
+        "order_purchase_timestamp": "Timestamp when the order was placed by the customer.",
+        "order_approved_at": "Timestamp when the payment was approved.",
+        "order_delivered_carrier_date": "Timestamp when the order was handed over to the carrier.",
+        "order_delivered_customer_date": "Actual delivery timestamp when the customer received the order. Compare with order_estimated_delivery_date to check for late deliveries.",
+        "order_estimated_delivery_date": "Estimated delivery date committed to the customer at the time of purchase."
+      }
+    },
+    {
+      "table_name": "order_items",
+      "description": "Details of the items included in each order, including pricing, sellers, and shipping limits.",
+      "columns": {
+        "order_id": "Unique identifier of the order (joins with orders.order_id).",
+        "order_item_id": "Sequential number identifying the number of items included in the same order (e.g., 1 for first item, 2 for second).",
+        "product_id": "Unique identifier of the product (joins with products.product_id).",
+        "seller_id": "Unique identifier of the seller (joins with sellers.seller_id).",
+        "shipping_limit_date": "Seller shipping limit date to hand over the product to the carrier.",
+        "price": "Price of the individual item in BRL (Brazilian Real).",
+        "freight_value": "Freight (shipping) value of the individual item in BRL."
+      }
+    },
+    {
+      "table_name": "order_payments",
+      "description": "Information about order payments, including payment methods, installments, and values.",
+      "columns": {
+        "order_id": "Unique identifier of the order (joins with orders.order_id).",
+        "payment_sequential": "A customer can pay an order with more than one payment method. This is the sequential order of payments.",
+        "payment_type": "Payment method chosen by the customer. E.g., 'credit_card', 'boleto' (ticket/bank slip), 'voucher', 'debit_card'.",
+        "payment_installments": "Number of installments chosen by the customer (for credit card payments).",
+        "payment_value": "Total amount paid for this payment sequence in BRL."
+      }
+    },
+    {
+      "table_name": "order_reviews",
+      "description": "Customer satisfaction reviews and ratings submitted after receiving orders.",
+      "columns": {
+        "review_id": "Unique identifier of the review.",
+        "order_id": "Unique identifier of the order (joins with orders.order_id).",
+        "review_score": "Satisfaction rating from 1 to 5.",
+        "review_comment_title": "Title of the review comment left by the customer.",
+        "review_comment_message": "Message body of the review left by the customer.",
+        "review_creation_date": "Timestamp when the review invitation was sent to the customer.",
+        "review_answer_timestamp": "Timestamp when the customer submitted the review response."
+      }
+    },
+    {
+      "table_name": "products",
+      "description": "Catalog of products sold, including category names and physical dimensions.",
+      "columns": {
+        "product_id": "Unique identifier of the product (joins with order_items.product_id).",
+        "product_category_name": "Product category in Portuguese (joins with category_name_translation.product_category_name).",
+        "product_name_lenght": "Number of characters in the product name.",
+        "product_description_lenght": "Number of characters in the product description.",
+        "product_photos_qty": "Number of published product photos.",
+        "product_weight_g": "Product weight in grams.",
+        "product_length_cm": "Product length in centimeters.",
+        "product_height_cm": "Product height in centimeters.",
+        "product_width_cm": "Product width in centimeters."
+      }
+    },
+    {
+      "table_name": "sellers",
+      "description": "Information about registered sellers and their locations.",
+      "columns": {
+        "seller_id": "Unique identifier of the seller (joins with order_items.seller_id).",
+        "seller_zip_code_prefix": "First 5 digits of the seller's zip code.",
+        "seller_city": "City where the seller is located.",
+        "seller_state": "State abbreviation where the seller is located (e.g., 'SP', 'RJ')."
+      }
+    },
+    {
+      "table_name": "category_name_translation",
+      "description": "Translation table map between Portuguese product category names and their English counterparts.",
+      "columns": {
+        "product_category_name": "Product category name in Portuguese (joins with products.product_category_name).",
+        "product_category_name_english": "Product category name translated to English (use this to display or filter categories in English)."
+      }
+    }
+  ]
+}

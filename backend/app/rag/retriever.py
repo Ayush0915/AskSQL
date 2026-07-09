@@ -2,7 +2,7 @@ import logging
 import re
 import json
 from pathlib import Path
-from backend.app.upload.session_manager import session_schemas
+from backend.app.upload.session_manager import session_schemas, is_valid_uuid
 
 logger = logging.getLogger("asksql-retriever")
 logging.basicConfig(level=logging.INFO)
@@ -36,16 +36,9 @@ class SchemaRetriever:
         using a lightweight token-matching relevance score, and returns them formatted as a single context string.
         """
         schemas = {}
-        if session_id:
+        if session_id and is_valid_uuid(session_id):
             schemas = session_schemas.get(session_id, {})
 
-        if not schemas:
-            if session_schemas:
-                # Use the first active session key
-                fallback_session_id = list(session_schemas.keys())[0]
-                schemas = session_schemas.get(fallback_session_id, {})
-                logger.info(f"No schemas for session {session_id}. Falling back to active session: {fallback_session_id}")
-            
         if not schemas:
             schemas = load_default_schema()
             if schemas:

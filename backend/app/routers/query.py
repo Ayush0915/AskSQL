@@ -1,11 +1,13 @@
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from backend.app.models.schemas import QueryRequest, QueryResponse
 from backend.app.rag.retriever import SchemaRetriever
 from backend.app.llm.sql_generator import SQLGenerator
 from backend.app.validator.sql_validator import SQLValidator
 from backend.app.db.connection import QueryExecutor
 from backend.app.llm.explainer import SQLExplainer
+from backend.app.upload.session_manager import is_valid_uuid
+from backend.app.limiter import limiter
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,13 +22,16 @@ executor = QueryExecutor()
 explainer = SQLExplainer()
 
 @router.post("/query", response_model=QueryResponse)
-async def process_nl_query(payload: QueryRequest):
+@limiter.limit("10/minute")
+async def process_nl_query(request: Request, payload: QueryRequest):
     question = payload.question.strip()
     session_id = payload.session_id.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
     if not session_id:
         raise HTTPException(status_code=400, detail="Session ID cannot be empty.")
+    if not is_valid_uuid(session_id):
+        raise HTTPException(status_code=400, detail="Invalid Session ID format. Must be a valid UUID.")
         
     logger.info(f"Received question: {question} for session: {session_id}")
     

@@ -31,3 +31,9 @@ yarn-error.log*
 *.njsproj
 *.sln
 *.swp
+
+# Sample CSV datasets (now downloaded automatically)
+backend/app/data/sample_datasets/*.csv
+
+# Sessions
+backend/sessions/

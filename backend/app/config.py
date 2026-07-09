@@ -14,18 +14,8 @@ load_dotenv(dotenv_path=dotenv_path)
 class Config:
     GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
     
-    # Database settings - connect using the read-only user by default for the app
-    # E.g. postgresql://asksql_readonly:readonly_password@localhost:5432/asksql
-    DATABASE_URL = os.getenv(
-        "DATABASE_URL", 
-        "postgresql://asksql_readonly:readonly_password@localhost:5432/asksql"
-    )
-    
-    # Default superuser URL for seeding/eval setup if needed
-    DATABASE_ADMIN_URL = os.getenv(
-        "DATABASE_ADMIN_URL",
-        "postgresql://postgres@localhost:5432/asksql"
-    )
+    # Database settings
+    # DuckDB is used; Postgres/SQLAlchemy config has been removed.
     
     # ChromaDB persist directory (resolved to absolute path relative to project root if relative)
     _raw_chroma_dir = os.getenv("CHROMA_PERSIST_DIR", "./backend/data/chroma")

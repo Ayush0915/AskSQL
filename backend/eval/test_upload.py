@@ -1,11 +1,13 @@
 import requests
 import json
 import time
+import uuid
 
 BASE_URL = "http://localhost:8000"
-SESSION_ID = "test-verification-session-123"
+SESSION_ID = str(uuid.uuid4())
 
 def run_tests():
+    global SESSION_ID
     print("=== AskSQL Upload-Dataset Feature Verification Tests ===")
     
     # 1. Healthcheck
@@ -26,12 +28,16 @@ def run_tests():
     start_time = time.time()
     res = requests.post(
         f"{BASE_URL}/api/sample",
-        json={"session_id": SESSION_ID}
+        json={}
     )
     duration = time.time() - start_time
     print(f"Status: {res.status_code}, Duration: {duration:.2f}s")
     assert res.status_code == 200
     assert res.json()["status"] == "success"
+    
+    # Capture the server-generated session_id
+    SESSION_ID = res.json()["session_id"]
+    print(f"Captured Server-Generated Session ID: {SESSION_ID}")
     
     tables_created = [t["table_name"] for t in res.json()["tables"]]
     print(f"Tables loaded into session: {tables_created}")

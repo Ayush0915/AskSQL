@@ -1,5 +1,6 @@
 from groq import Groq
 from backend.app.config import config
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 class SQLExplainer:
     def __init__(self):
@@ -10,6 +11,11 @@ class SQLExplainer:
             self.client = Groq()
         self.model = "llama-3.3-70b-versatile"
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True
+    )
     def explain_sql(self, sql: str) -> str:
         """
         Explains a generated SQL SELECT query in simple English.

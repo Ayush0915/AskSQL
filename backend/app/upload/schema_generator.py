@@ -7,6 +7,7 @@ from backend.app.upload.session_manager import (
     session_schemas,
     get_chroma_collection_name
 )
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger("asksql-schema-generator")
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +43,11 @@ def format_table_document(table_name: str, table_desc: str, columns: dict) -> st
         doc_lines.append(f"  - {col_name}: {col_desc}")
     return "\n".join(doc_lines)
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True
+)
 async def generate_schema_descriptions_llm(
     session_id: str,
     table_name: str,
@@ -150,6 +156,11 @@ def embed_session_table_schema(
     """Obsolete. Schema is automatically persisted to session storage on disk."""
     logger.info(f"Indexed schema for table '{table_name}' in memory/disk.")
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True
+)
 async def generate_example_questions_llm(session_id: str) -> list[str]:
     """
     Queries Llama 3 on Groq with the session's active schema layout,
@@ -222,3 +233,21 @@ Example format:
     ]
     session_questions[session_id] = fallback
     return fallback
+
+async def describe_table_helper(session_id: str, table: dict):
+    try:
+        desc_data = await generate_schema_descriptions_llm(
+            session_id=session_id,
+            table_name=table["table_name"],
+            columns_and_types=table["columns_and_types"],
+            sample_rows=table["preview"]
+        )
+        embed_session_table_schema(
+            session_id=session_id,
+            table_name=table["table_name"],
+            table_desc=desc_data["table_description"],
+            columns_desc=desc_data["columns"]
+        )
+    except Exception as e:
+        logger.error(f"Error generating descriptions for '{table['table_name']}' in session {session_id}: {e}")
+

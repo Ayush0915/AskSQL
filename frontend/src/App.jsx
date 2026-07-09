@@ -7,27 +7,14 @@ import QueryHistory from './components/QueryHistory'
 import SchemaBrowser from './components/SchemaBrowser'
 
 export default function App() {
-  // Generate or retrieve session ID from sessionStorage
-  const [sessionId] = useState(() => {
-    let id = sessionStorage.getItem('asksql_session_id')
-    if (!id) {
-      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        id = crypto.randomUUID()
-      } else {
-        id = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
-      }
-      sessionStorage.setItem('asksql_session_id', id)
-    }
-    return id
+  const [sessionId, setSessionId] = useState(() => {
+    return sessionStorage.getItem('asksql_session_id') || ''
   })
 
   const [schema, setSchema] = useState([])
   const [isDatasetLoaded, setIsDatasetLoaded] = useState(false)
   const [exampleQuestions, setExampleQuestions] = useState([])
-  const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem(`asksql_history_${sessionId}`)
-    return saved ? JSON.parse(saved) : []
-  })
+  const [history, setHistory] = useState([])
   
   const [isLoading, setIsLoading] = useState(false)
   const [isSchemaLoading, setIsSchemaLoading] = useState(false)
@@ -37,7 +24,17 @@ export default function App() {
   const [errorMsg, setErrorMsg] = useState(null)
   const [currentQuestion, setCurrentQuestion] = useState('')
 
-  // Check backend health and load schema on mount
+  // Load history when sessionId changes
+  useEffect(() => {
+    if (sessionId) {
+      const saved = localStorage.getItem(`asksql_history_${sessionId}`)
+      setHistory(saved ? JSON.parse(saved) : [])
+    } else {
+      setHistory([])
+    }
+  }, [sessionId])
+
+  // Check backend health and load schema on mount / sessionId change
   useEffect(() => {
     async function init() {
       try {
@@ -48,18 +45,31 @@ export default function App() {
         setBackendStatus('disconnected')
       }
 
-      setIsSchemaLoading(true)
-      try {
-        const data = await fetchSchema(sessionId)
-        setSchema(data.tables || [])
-        setExampleQuestions(data.example_questions || [])
-        if (data.tables && data.tables.length > 0) {
-          setIsDatasetLoaded(true)
+      if (sessionId) {
+        setIsSchemaLoading(true)
+        try {
+          const data = await fetchSchema(sessionId)
+          setSchema(data.tables || [])
+          setExampleQuestions(data.example_questions || [])
+          if (data.tables && data.tables.length > 0) {
+            setIsDatasetLoaded(true)
+          } else {
+            sessionStorage.removeItem('asksql_session_id')
+            localStorage.removeItem(`asksql_history_${sessionId}`)
+            setSessionId('')
+            setIsDatasetLoaded(false)
+            setErrorMsg('Your session expired — please reload your data.')
+          }
+        } catch (err) {
+          console.error('Failed to load schema browser:', err)
+          sessionStorage.removeItem('asksql_session_id')
+          localStorage.removeItem(`asksql_history_${sessionId}`)
+          setSessionId('')
+          setIsDatasetLoaded(false)
+          setErrorMsg('Your session expired — please reload your data.')
+        } finally {
+          setIsSchemaLoading(false)
         }
-      } catch (err) {
-        console.error('Failed to load schema browser:', err)
-      } finally {
-        setIsSchemaLoading(false)
       }
     }
     init()
@@ -67,7 +77,9 @@ export default function App() {
 
   // Persist history to localStorage scoped by session ID
   useEffect(() => {
-    localStorage.setItem(`asksql_history_${sessionId}`, JSON.stringify(history))
+    if (sessionId) {
+      localStorage.setItem(`asksql_history_${sessionId}`, JSON.stringify(history))
+    }
   }, [history, sessionId])
 
   const handleQuerySubmit = async (question) => {
@@ -91,7 +103,17 @@ export default function App() {
         }
         setHistory(prev => [...prev, newHistoryItem])
       } else {
-        setErrorMsg(res.error || 'Failed to complete query pipeline.')
+        const errMsg = res.error || 'Failed to complete query pipeline.'
+        setErrorMsg(errMsg)
+        
+        // If session expired or not found, clear session
+        if (errMsg.includes('No dataset loaded') || errMsg.includes('Database file not found')) {
+          sessionStorage.removeItem('asksql_session_id')
+          localStorage.removeItem(`asksql_history_${sessionId}`)
+          setSessionId('')
+          setIsDatasetLoaded(false)
+        }
+
         const newHistoryItem = {
           id: Date.now().toString(),
           question,
@@ -104,6 +126,14 @@ export default function App() {
       console.error(err)
       const errorDetail = err.response?.data?.detail || err.message || 'API request error.'
       setErrorMsg(errorDetail)
+      
+      if (typeof errorDetail === 'string' && (errorDetail.includes('No dataset loaded') || errorDetail.includes('Database file not found'))) {
+        sessionStorage.removeItem('asksql_session_id')
+        localStorage.removeItem(`asksql_history_${sessionId}`)
+        setSessionId('')
+        setIsDatasetLoaded(false)
+      }
+
       const newHistoryItem = {
         id: Date.now().toString(),
         question,
@@ -132,6 +162,8 @@ export default function App() {
     setErrorMsg(null)
     setHistory([])
     localStorage.removeItem(`asksql_history_${sessionId}`)
+    sessionStorage.removeItem('asksql_session_id')
+    setSessionId('')
   }
 
   return (
