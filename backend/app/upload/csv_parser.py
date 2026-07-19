@@ -63,6 +63,8 @@ def clean_csv_file(input_source, output_file_path: Path, is_bytes: bool = False)
             writer = csv.writer(f_out, delimiter=delimiter)
             
             for row in reader:
+                if not row or not any(cell.strip() for cell in row):
+                    continue
                 cleaned_row = [clean_csv_field(cell) for cell in row]
                 writer.writerow(cleaned_row)
         return delimiter
@@ -134,7 +136,7 @@ def parse_and_load_csv(session_id: str, filename: str, file_bytes: bytes = None,
         raw_table_name = f"{table_name}_raw"
         csv_path_str = target_csv_path.as_posix()
         escaped_delim = str(detected_delim).replace("'", "''")
-        conn.execute(f"CREATE OR REPLACE TABLE \"{raw_table_name}\" AS SELECT * FROM read_csv_auto('{csv_path_str}', delim='{escaped_delim}')")
+        conn.execute(f"CREATE OR REPLACE TABLE \"{raw_table_name}\" AS SELECT * FROM read_csv_auto('{csv_path_str}', delim='{escaped_delim}', header=True, null_padding=True, ignore_errors=True)")
         
         # Get column names
         schema_info = conn.execute(f"PRAGMA table_info('{raw_table_name}')").fetchall()
