@@ -23,11 +23,30 @@ def clean_csv_field(val: str) -> str:
         return val_stripped.replace(',', '')
     return val
 
-def clean_csv_file(input_source, output_file_path: Path, is_bytes: bool = False):
+def detect_delimiter(sample_text: str) -> str:
+    """Uses csv.Sniffer to detect CSV delimiter, ignoring delimiters inside quotes."""
+    if not sample_text:
+        return ','
+    try:
+        dialect = csv.Sniffer().sniff(sample_text, delimiters=[',', ';', '\t', '|'])
+        return dialect.delimiter
+    except Exception:
+        # Fallback to counting if sniffer fails
+        first_line = sample_text.split('\n')[0]
+        counts = {
+            ',': first_line.count(','),
+            ';': first_line.count(';'),
+            '\t': first_line.count('\t'),
+            '|': first_line.count('|')
+        }
+        best = max(counts, key=counts.get)
+        return best if counts[best] > 0 else ','
+
+def clean_csv_file(input_source, output_file_path: Path, is_bytes: bool = False) -> str:
     """
     Reads a CSV (from either file path or bytes) line by line,
     removes thousands separators from numeric columns, and writes to a clean output CSV file.
-    Uses streaming to keep memory footprint minimal.
+    Uses streaming to keep memory footprint minimal. Returns the detected delimiter.
     """
     if is_bytes:
         f_in = io.TextIOWrapper(io.BytesIO(input_source), encoding='utf-8-sig', errors='ignore', newline='')
@@ -35,19 +54,9 @@ def clean_csv_file(input_source, output_file_path: Path, is_bytes: bool = False)
         f_in = open(input_source, mode='r', encoding='utf-8-sig', errors='ignore', newline='')
 
     try:
-        # Detect delimiter using simple counting heuristic on the header
-        sample = f_in.read(4096)
+        sample = f_in.read(8192)
         f_in.seek(0)
-        delimiter = ','
-        if sample:
-            first_line = sample.split('\n')[0]
-            comma_count = first_line.count(',')
-            semicolon_count = first_line.count(';')
-            tab_count = first_line.count('\t')
-            if semicolon_count > comma_count and semicolon_count > tab_count:
-                delimiter = ';'
-            elif tab_count > comma_count and tab_count > semicolon_count:
-                delimiter = '\t'
+        delimiter = detect_delimiter(sample)
 
         with open(output_file_path, mode='w', encoding='utf-8-sig', errors='ignore', newline='') as f_out:
             reader = csv.reader(f_in, delimiter=delimiter)
@@ -56,6 +65,7 @@ def clean_csv_file(input_source, output_file_path: Path, is_bytes: bool = False)
             for row in reader:
                 cleaned_row = [clean_csv_field(cell) for cell in row]
                 writer.writerow(cleaned_row)
+        return delimiter
     finally:
         f_in.close()
 
@@ -109,12 +119,12 @@ def parse_and_load_csv(session_id: str, filename: str, file_bytes: bytes = None,
     # Clean the CSV file to remove thousands separators and write to temp_csv_path
     temp_csv_path = session_dir / f"temp_{table_name}.csv"
     if file_path is not None:
-        clean_csv_file(file_path, temp_csv_path, is_bytes=False)
+        detected_delim = clean_csv_file(file_path, temp_csv_path, is_bytes=False)
     else:
-        clean_csv_file(file_bytes, temp_csv_path, is_bytes=True)
+        detected_delim = clean_csv_file(file_bytes, temp_csv_path, is_bytes=True)
     target_csv_path = temp_csv_path
 
-    # 2. Insert into session DuckDB using DuckDB's native read_csv_auto
+    # 2. Insert into session DuckDB using DuckDB's native read_csv_auto with single source of truth delim
     db_path = get_duckdb_path(session_id)
     conn = None
     try:
@@ -123,7 +133,8 @@ def parse_and_load_csv(session_id: str, filename: str, file_bytes: bytes = None,
         # Read the CSV into a temporary table to inspect columns
         raw_table_name = f"{table_name}_raw"
         csv_path_str = target_csv_path.as_posix()
-        conn.execute(f"CREATE OR REPLACE TABLE \"{raw_table_name}\" AS SELECT * FROM read_csv_auto('{csv_path_str}')")
+        escaped_delim = str(detected_delim).replace("'", "''")
+        conn.execute(f"CREATE OR REPLACE TABLE \"{raw_table_name}\" AS SELECT * FROM read_csv_auto('{csv_path_str}', delim='{escaped_delim}')")
         
         # Get column names
         schema_info = conn.execute(f"PRAGMA table_info('{raw_table_name}')").fetchall()
