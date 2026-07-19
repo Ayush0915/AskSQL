@@ -82,7 +82,21 @@ export default function App() {
     }
   }, [history, sessionId])
 
+  const handleDatasetLoaded = (tables, questions, newSessionId) => {
+    if (newSessionId) {
+      sessionStorage.setItem('asksql_session_id', newSessionId)
+      setSessionId(newSessionId)
+    }
+    setSchema(tables)
+    setExampleQuestions(questions || [])
+    setIsDatasetLoaded(true)
+  }
+
   const handleQuerySubmit = async (question) => {
+    if (!sessionId) {
+      setErrorMsg('Session ID is missing. Please reload your dataset.')
+      return
+    }
     setIsLoading(true)
     setErrorMsg(null)
     setCurrentQuestion(question)
@@ -206,11 +220,7 @@ export default function App() {
             isLoading={isSchemaLoading} 
             sessionId={sessionId}
             isDatasetLoaded={isDatasetLoaded}
-            onDatasetLoaded={(tables, questions) => {
-              setSchema(tables)
-              setExampleQuestions(questions || [])
-              setIsDatasetLoaded(true)
-            }}
+            onDatasetLoaded={handleDatasetLoaded}
             onDatasetCleared={handleDatasetCleared}
           />
           {isDatasetLoaded && (

@@ -101,7 +101,7 @@ async def get_schema_browser(session_id: str):
 
 @app.post("/api/upload")
 @limiter.limit("10/minute")
-async def upload_dataset(request: Request, files: list[UploadFile] = File(...)):
+async def upload_dataset(request: Request, files: list[UploadFile] = File(...), session_id: str = Form(None)):
     """
     Handles CSV uploads, sanitizes table/column names, infers column data types,
     loads the data into the session's DuckDB file, generates schema descriptions,
@@ -110,7 +110,8 @@ async def upload_dataset(request: Request, files: list[UploadFile] = File(...)):
     if not files:
         raise HTTPException(status_code=400, detail="No files uploaded.")
 
-    session_id = str(uuid.uuid4())
+    if not session_id or not is_valid_uuid(session_id):
+        session_id = str(uuid.uuid4())
     processed_tables = []
     total_size = 0
 
@@ -187,7 +188,9 @@ async def load_sample_dataset(request: Request, payload: dict = None):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to prepare sample dataset files: {str(e)}")
 
-    session_id = str(uuid.uuid4())
+    session_id = payload.get("session_id") if (payload and isinstance(payload, dict)) else None
+    if not session_id or not is_valid_uuid(session_id):
+        session_id = str(uuid.uuid4())
 
     # Locate pre-packaged datasets directory
     sample_dir = Path(__file__).resolve().parent / "data" / "sample_datasets"
